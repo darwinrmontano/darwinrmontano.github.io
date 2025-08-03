@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bitácora de Mantenimiento</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #eee;
+    }
+    .done {
+      background-color: #d4edda;
+    }
+    .pending {
+      background-color: #f8d7da;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🛠 Bitácora de Mantenimiento</h1>
+
+  <form id="taskForm">
+    <label for="place">Lugar / Job Name:</label>
+    <input type="text" id="place" required>
+
+    <label for="activity">Actividad:</label>
+    <input type="text" id="activity" required>
+
+    <label for="status">Estado:</label>
+    <select id="status" required>
+      <option value="done">Completado</option>
+      <option value="pending" selected>Pendiente</option>
+    </select>
+
+    <label for="notes">Notas:</label>
+    <input type="text" id="notes">
+
+    <button type="submit">Agregar tarea</button>
+  </form>
+
+  <table id="MaintenanceTable">
+    <thead>
+      <tr>
+        <th>Lugar / Job</th>
+        <th>Actividad</th>
+        <th>Estado</th>
+        <th>Notas</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+  <h2>📋 Tareas en línea (desde Google Sheets)</h2>
+  <iframe src="https://docs.google.com/spreadsheets/d/1hz3uv9GTDfvcSOFXOx83yeXCPQXMBhxOFhc_V7YGluA/pubhtml?widget=true&amp;headers=false"
+          width="100%" height="500px" style="border:1px solid #ccc;">
+  </iframe>
+
+  <script>
+    const form = document.getElementById('taskForm');
+    const tableBody = document.querySelector('#MaintenanceTable tbody');
+
+    window.onload = function() {
+      const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      savedTasks.forEach(task => {
+        addRowToTable(task);
+      });
+    };
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const task = {
+        place: document.getElementById('place').value,
+        activity: document.getElementById('activity').value,
+        status: document.getElementById('status').value,
+        notes: document.getElementById('notes').value
+      };
+
+      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+      tasks.push(task);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+
+      addRowToTable(task);
+      form.reset();
+    });
+
+    function addRowToTable(task) {
+      const newRow = document.createElement('tr');
+      newRow.innerHTML = `
+        <td>${task.place}</td>
+        <td>${task.activity}</td>
+        <td class="${task.status === 'done' ? 'done' : 'pending'}">
+          ${task.status === 'done' ? 'Completado' : 'Pendiente'}
+        </td>
+        <td>${task.notes}</td>
+      `;
+      tableBody.appendChild(newRow);
+    }
+  </script>
+
+</body>
+</html>
+
