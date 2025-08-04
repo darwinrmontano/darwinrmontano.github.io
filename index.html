@@ -9,151 +9,40 @@
       padding: 20px;
       background: #f9f9f9;
     }
+
     h1, h2 {
       text-align: center;
+      color: #333;
     }
-    form {
-      background: #fff;
-      padding: 20px;
-      margin-bottom: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-    }
-    th, td {
+
+    iframe {
+      margin-top: 20px;
       border: 1px solid #ccc;
-      padding: 10px;
-      text-align: left;
+      width: 100%;
+      height: 600px;
     }
-    th {
-      background: #eee;
-    }
-    .done {
-      background-color: #d4edda;
-    }
-    .pending {
-      background-color: #f8d7da;
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #888;
     }
   </style>
 </head>
 <body>
 
-  <h1>🛠 Bitácora de Mantenimiento</h1>
+  <h1>🗓 Bitácora de Mantenimiento</h1>
+  <h2>📋 Vista del día actual (solo lectura)</h2>
+  <p style="text-align:center;">Esta hoja se actualiza automáticamente cada mañana. Puedes revisar el progreso del día sin editar.</p>
 
-  <form id="taskForm">
-    <label for="place">Lugar / Job:</label>
-    <input type="text" id="place" required>
+  <iframe 
+    src="https://docs.google.com/spreadsheets/d/1VGEVxjyrpKHKBtGOgHvZ18CkenITe3ta6rXGIMXwMC8/pubhtml?gid=0&widget=true&headers=false">
+  </iframe>
 
-    <label for="activity">Actividad:</label>
-    <input type="text" id="activity" required>
-
-    <label for="status">Estado:</label>
-    <select id="status">
-      <option value="done">Completado</option>
-      <option value="pending" selected>Pendiente</option>
-    </select>
-
-    <label for="notes">Notas:</label>
-    <input type="text" id="notes">
-
-    <button type="submit">Agregar tarea</button>
-  </form>
-
-  <table id="MaintenanceTable">
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Lugar</th>
-        <th>Actividad</th>
-        <th>Estado</th>
-        <th>Notas</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Tareas se agregan aquí -->
-    </tbody>
-  </table>
-
- <h2>📋 Lista Pública de Mantenimiento</h2>
-<iframe 
-  src="https://docs.google.com/spreadsheets/d/1VGEVxjyrpKHKBtGOgHvZ18CkenITe3ta6rXGIMXwMC8/pubhtml?widget=true&amp;headers=false" 
-  width="100%" 
-  height="500px" 
-  style="border:1px solid #ccc;">
-</iframe>
-
-
-<script>
-  const form = document.getElementById('taskForm');
-  const tableBody = document.querySelector('#MaintenanceTable tbody');
-
-  // Cargar tareas guardadas
-  window.onload = function () {
-    const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    savedTasks.forEach(task => addRowToTable(task));
-  };
-
-  // Guardar nuevas tareas
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString('es-ES');
-
-    const task = {
-      date: formattedDate,
-      place: document.getElementById('place').value,
-      activity: document.getElementById('activity').value,
-      status: document.getElementById('status').value,
-      notes: document.getElementById('notes').value
-    };
-
-    const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    tasks.push(task);
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-
-    addRowToTable(task);
-    form.reset();
-  });
-
-  function addRowToTable(task) {
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-      <td>${task.date}</td>
-      <td>${task.place}</td>
-      <td>${task.activity}</td>
-      <td class="${task.status === 'done' ? 'done' : 'pending'}">
-        ${task.status === 'done' ? 'Completado' : 'Pendiente'}
-      </td>
-      <td>${task.notes}</td>
-    `;
-    tableBody.appendChild(newRow);
-  }
-</script>
-
+  <div class="footer">
+    <p>&copy; 2025 Darwin Montano – Bitácora diaria generada con Google Sheets y GitHub Pages</p>
+  </div>
 
 </body>
 </html>
