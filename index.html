@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>📋 Maintenance</title>
@@ -23,6 +23,8 @@
     p {
       text-align: center;
       margin-bottom: 30px;
+      color: #666;
+      font-style: italic;
     }
     iframe {
       display: block;
@@ -36,8 +38,15 @@
 </head>
 <body>
   <h1>📅 Maintenance Tasks</h1>
-  <h2>🗒️ Today </h2>
+  <h2 id="currentDate">Loading date...</h2>
+  <p>This sheet refreshes daily with the most recent updates.</p>
 
   <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=0&single=true"></iframe>
+
+  <script>
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const today = new Date().toLocaleDateString('en-US', options);
+    document.getElementById('currentDate').textContent = today;
+  </script>
 </body>
 </html>
