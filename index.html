@@ -3,34 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📋 Maintenance</title>
+  <title>📋 Maintenance Logs</title>
   <style>
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
       margin: 0;
       padding: 16px;
-      background-color: #f4f4f4;
+      background: #f4f4f4;
       color: #333;
     }
 
     h1 {
       font-size: 22px;
       text-align: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     h2 {
       font-size: 16px;
       text-align: center;
       color: #666;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
 
-    p {
-      font-size: 13px;
-      text-align: center;
-      color: #888;
-      margin-bottom: 16px;
+    select {
+      display: block;
+      margin: 0 auto 20px;
+      padding: 8px 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     .frame-container {
@@ -40,10 +42,10 @@
       position: relative;
       overflow: hidden;
       border-radius: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.1);
     }
 
-    .frame-container iframe {
+    iframe {
       width: 100%;
       height: 100%;
       border: none;
@@ -53,7 +55,6 @@
     @media (min-width: 768px) {
       h1 { font-size: 26px; }
       h2 { font-size: 18px; }
-      p  { font-size: 14px; }
       .frame-container {
         aspect-ratio: 16 / 9;
       }
@@ -61,21 +62,50 @@
   </style>
 </head>
 <body>
-  <h1>📅 Maintenance Tasks</h1>
-  <h2 id="currentDate">Loading date...</h2>
-  <p>This sheet refreshes daily with the most recent updates.</p>
+  <h1>📅 Maintenance Logs</h1>
+  <h2>Select a date to view tasks</h2>
+
+  <select id="dateSelector"></select>
 
   <div class="frame-container">
-    <iframe 
-      src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=0&single=true" 
-      allowfullscreen>
-    </iframe>
+    <iframe id="sheetFrame" allowfullscreen></iframe>
   </div>
 
   <script>
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const today = new Date().toLocaleDateString('en-US', options);
-    document.getElementById('currentDate').textContent = today;
+    const selector = document.getElementById('dateSelector');
+    const iframe = document.getElementById('sheetFrame');
+
+    // 🧠 CONFIGURA ESTO CON TU ENLACE BASE
+    const baseURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=0&single=true&widget=true&headers=false#gid=0&sheet=";
+
+    function formatDate(date) {
+      return date.toISOString().split('T')[0]; // yyyy-mm-dd
+    }
+
+    function generateDates(daysBack = 7) {
+      const today = new Date();
+      for (let i = 0; i < daysBack; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const dateStr = formatDate(d);
+        const option = document.createElement("option");
+        option.value = dateStr;
+        option.textContent = dateStr;
+        selector.appendChild(option);
+      }
+    }
+
+    // Cargar fechas y asignar comportamiento
+    generateDates(7); // últimos 7 días
+
+    // Establecer la fecha de hoy por defecto
+    selector.selectedIndex = 0;
+    iframe.src = baseURL + selector.value;
+
+    // Al cambiar la fecha
+    selector.addEventListener("change", () => {
+      iframe.src = baseURL + selector.value;
+    });
   </script>
 </body>
 </html>
