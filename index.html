@@ -102,53 +102,54 @@
           width="100%" height="500px" style="border:1px solid #ccc;">
   </iframe>
 
-  <script>
-    const form = document.getElementById('taskForm');
-    const tableBody = document.querySelector('#MaintenanceTable tbody');
+<script>
+  const form = document.getElementById('taskForm');
+  const tableBody = document.querySelector('#MaintenanceTable tbody');
 
-    // Cargar tareas guardadas
-    window.onload = function () {
-      const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
-      savedTasks.forEach(task => addRowToTable(task));
+  // Cargar tareas guardadas
+  window.onload = function () {
+    const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    savedTasks.forEach(task => addRowToTable(task));
+  };
+
+  // Guardar nuevas tareas
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('es-ES');
+
+    const task = {
+      date: formattedDate,
+      place: document.getElementById('place').value,
+      activity: document.getElementById('activity').value,
+      status: document.getElementById('status').value,
+      notes: document.getElementById('notes').value
     };
 
-    // Guardar nuevas tareas
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
+    const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    tasks.push(task);
+    localStorage.setItem('tasks', JSON.stringify(tasks));
 
-      const today = new Date();
-      const formattedDate = today.toLocaleDateString('es-ES');
+    addRowToTable(task);
+    form.reset();
+  });
 
-      const task = {
-        date: formattedDate,
-        place: document.getElementById('place').value,
-        activity: document.getElementById('activity').value,
-        status: document.getElementById('status').value,
-        notes: document.getElementById('notes').value
-      };
+  function addRowToTable(task) {
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+      <td>${task.date}</td>
+      <td>${task.place}</td>
+      <td>${task.activity}</td>
+      <td class="${task.status === 'done' ? 'done' : 'pending'}">
+        ${task.status === 'done' ? 'Completado' : 'Pendiente'}
+      </td>
+      <td>${task.notes}</td>
+    `;
+    tableBody.appendChild(newRow);
+  }
+</script>
 
-      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-      tasks.push(task);
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-
-      addRowToTable(task);
-      form.reset();
-    });
-
-    function addRowToTable(task) {
-      const newRow = document.createElement('tr');
-      newRow.innerHTML = `
-        <td>${task.date}</td>
-        <td>${task.place}</td>
-        <td>${task.activity}</td>
-        <td class="${task.status === 'done' ? 'done' : 'pending'}">
-          ${task.status === 'done' ? 'Completado' : 'Pendiente'}
-        </td>
-        <td>${task.notes}</td>
-      `;
-      tableBody.appendChild(newRow);
-    }
-  </script>
 
 </body>
 </html>
