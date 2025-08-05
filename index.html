@@ -7,9 +7,17 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f4f4;
+      background: #f9f9f9;
       color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
       text-align: center;
     }
     iframe {
@@ -17,51 +25,74 @@
       height: 600px;
       border: 1px solid #ccc;
       border-radius: 8px;
+      margin-top: 20px;
+    }
+    input[type="date"] {
+      padding: 8px;
+      font-size: 16px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      margin-left: 10px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
     }
   </style>
 </head>
 <body>
-  <h1>📅 Maintenance Logs</h1>
-  <iframe id="hoja" loading="lazy"></iframe>
+  <div class="container">
+    <h1>📋 Maintenance Logs</h1>
+    <input type="date" id="fecha" />
+    <button onclick="cargarHoja()">Today</button>
+    <iframe id="iframe" src=""></iframe>
+  </div>
 
   <script>
-    const HOJA_ID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY"; // Tu ID de hoja de cálculo
-    const GIDMAP_SHEET_GID = "289397948"; // GID de la hoja GIDMAP publicada
+    const spreadsheetId = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY"; // Tu ID real
+    const gidMapUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=GIDMAP`;
 
-    function getToday() {
-      const today = new Date();
-      today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-      return today.toISOString().split("T")[0]; // yyyy-MM-dd
+    document.addEventListener("DOMContentLoaded", () => {
+      const hoy = new Date().toISOString().split("T")[0];
+      document.getElementById("fecha").value = hoy;
+      cargarHoja();
+    });
+
+    function cargarHoja() {
+      const fecha = document.getElementById("fecha").value;
+      fetch(gidMapUrl)
+        .then(res => res.text())
+        .then(text => {
+          const json = JSON.parse(text.substr(47).slice(0, -2));
+          const rows = json.table.rows;
+          const mapa = {};
+          rows.forEach(row => {
+            const f = row.c[0]?.v;
+            const g = row.c[1]?.v;
+            if (f && g) mapa[f] = g;
+          });
+
+          const gid = mapa[fecha];
+          if (gid) {
+            const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
+            document.getElementById("iframe").src = url;
+          } else {
+            alert("⚠️ No se encontró la hoja para hoy.");
+            document.getElementById("iframe").src = "";
+          }
+        })
+        .catch(() => {
+          alert("❌ Error al buscar la hoja.");
+        });
     }
-
-    function loadIframe(gid) {
-      const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
-      document.getElementById("hoja").src = url;
-    }
-
-    async function buscarGID(fecha) {
-      const urlCSV = `https://docs.google.com/spreadsheets/d/${HOJA_ID}/gviz/tq?tqx=out:csv&gid=${GIDMAP_SHEET_GID}`;
-      const response = await fetch(urlCSV);
-      const text = await response.text();
-      const rows = text.trim().split("\n").map(line => line.split(","));
-
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i][0] === fecha) {
-          return rows[i][1];
-        }
-      }
-      return null;
-    }
-
-    (async () => {
-      const fecha = getToday();
-      const gid = await buscarGID(fecha);
-      if (gid) {
-        loadIframe(gid);
-      } else {
-        alert("⚠️ No se encontró la hoja para hoy.");
-      }
-    })();
   </script>
 </body>
 </html>
