@@ -1,124 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>📋 Maintenance Logs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: Arial, sans-serif;
+      padding: 20px;
       background: #f4f4f4;
       color: #333;
-      padding: 20px;
+      text-align: center;
     }
-
     h1 {
-      text-align: center;
-      font-size: 26px;
+      font-size: 28px;
+      margin-bottom: 5px;
     }
-
     h2 {
-      text-align: center;
       font-size: 18px;
       color: #666;
+      margin-bottom: 20px;
     }
-
-    .controls {
-      text-align: center;
-      margin: 20px 0;
-    }
-
-    input[type="date"], button {
-      padding: 10px;
+    input[type="date"] {
+      padding: 8px;
       font-size: 16px;
-      margin: 5px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+      margin-right: 10px;
     }
-
+    button {
+      padding: 8px 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
     iframe {
       width: 100%;
       height: 600px;
       border: none;
-      border-radius: 10px;
-      display: block;
-      margin-top: 20px;
+      margin-top: 30px;
     }
   </style>
 </head>
 <body>
-
   <h1>📋 Maintenance Logs</h1>
   <h2>Select a date to view tasks</h2>
 
-  <div class="controls">
-    <input type="date" id="datePicker">
-    <button onclick="goToToday()">📅 Today</button>
-  </div>
+  <input type="date" id="datePicker">
+  <button onclick="goToToday()">📅 Today</button>
 
-  <iframe id="sheetFrame" src=""></iframe>
+  <iframe id="sheetFrame"></iframe>
 
   <script>
-    const sheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY"; // <- TU ID
-    const gidmapSheetName = "GIDMAP";
+    const sheetID = "TU_ID_DE_HOJA"; // ← Reemplaza con el ID de tu hoja
+    const gidMapURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=GIDMAP`;
 
-    function getLocalDate() {
-      const now = new Date();
-      const offset = now.getTimezoneOffset();
-      now.setMinutes(now.getMinutes() - offset);
-      return now;
-    }
-
-    function formatDateKey(date) {
+    function formatDate(date) {
       const yyyy = date.getFullYear();
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const dd = String(date.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`; // debe coincidir con los nombres de tus hojas
+      return `${yyyy}-${mm}-${dd}`;
     }
 
-    function goToToday() {
-      const today = getLocalDate();
-      document.getElementById("datePicker").value = today.toISOString().split('T')[0];
-      loadSheetForDate(today);
+    function formatForInput(date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
-    function loadSheetForDate(date) {
-      const targetSheetName = formatDateKey(date);
+    function updateIframe(gid) {
+      const url = `https://docs.google.com/spreadsheets/d/${sheetID}/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
+      document.getElementById('sheetFrame').src = url;
+    }
 
-      fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${gidmapSheetName}`)
+    function loadGIDAndUpdate(dateString) {
+      fetch(gidMapURL)
         .then(res => res.text())
-        .then(text => {
-          const json = JSON.parse(text.substr(47).slice(0, -2));
-          const rows = json.table.rows;
-          const gidMap = {};
-          rows.forEach(row => {
-            const name = row.c[0]?.v;
-            const gid = row.c[1]?.v;
-            if (name && gid) gidMap[name] = gid;
-          });
+        .then(data => {
+          const json = JSON.parse(data.substring(47).slice(0, -2));
+          const table = json.table.rows;
+          let gid = null;
 
-          const gid = gidMap[targetSheetName];
-          if (gid) {
-            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
-            document.getElementById("sheetFrame").src = url;
-          } else {
-            document.getElementById("sheetFrame").src = "";
-            alert(`⚠️ No se encontró la hoja para: ${targetSheetName}\nAsegúrate de que esté en GIDMAP.`);
+          for (let row of table) {
+            const name = row.c[0]?.v;
+            const value = row.c[1]?.v;
+            if (name === dateString) {
+              gid = value;
+              break;
+            }
           }
-        })
-        .catch(err => {
-          console.error(err);
-          alert("❌ Error al cargar GIDMAP desde Google Sheets.");
+
+          if (gid !== null) {
+            updateIframe(gid);
+          } else {
+            alert(`⚠️ No se encontró la hoja para: ${dateString}\nAsegúrate de que esté en GIDMAP.`);
+            document.getElementById('sheetFrame').src = "";
+          }
         });
     }
 
-    document.getElementById("datePicker").addEventListener("change", function () {
-      const selectedDate = new Date(this.value);
-      loadSheetForDate(selectedDate);
+    function onDateChange() {
+      const selectedDate = document.getElementById("datePicker").value;
+      loadGIDAndUpdate(selectedDate);
+    }
+
+    function goToToday() {
+      const today = new Date();
+      const formatted = formatForInput(today);
+      document.getElementById("datePicker").value = formatted;
+      loadGIDAndUpdate(formatted);
+    }
+
+    // Al cargar
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date();
+      const formatted = formatForInput(today);
+      document.getElementById("datePicker").value = formatted;
+      loadGIDAndUpdate(formatted);
     });
-
-    window.onload = goToToday;
   </script>
-
 </body>
 </html>
