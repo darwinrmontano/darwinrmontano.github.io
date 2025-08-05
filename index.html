@@ -1,62 +1,77 @@
-<script>
-  const SHEET_ID = '2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd';
-  const GIDMAP_SHEET_ID = '10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY';
-  const GIDMAP_SHEET_GID = '2048853738';
-
-  async function getGidForDate(date) {
-    const formattedDate = date.toISOString().split('T')[0]; // yyyy-mm-dd
-    const url = `https://docs.google.com/spreadsheets/d/${GIDMAP_SHEET_ID}/gviz/tq?tqx=out:json&gid=${GIDMAP_SHEET_GID}`;
-    
-    const res = await fetch(url);
-    const text = await res.text();
-    const json = JSON.parse(text.substr(47).slice(0, -2));
-    const rows = json.table.rows;
-
-    for (let row of rows) {
-      const sheetDate = row.c[0]?.v;
-      const gid = row.c[1]?.v?.toString();
-      if (sheetDate === formattedDate) {
-        return gid;
-      }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>📋 Maintenance Logs</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f1f1;
+      padding: 20px;
+      text-align: center;
     }
-    return null;
-  }
+    h1 {
+      margin-bottom: 20px;
+    }
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      background: white;
+    }
+    .date-picker {
+      margin-bottom: 20px;
+    }
+    button {
+      margin-left: 10px;
+      padding: 5px 15px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 Maintenance Logs</h1>
+  <div class="date-picker">
+    <input type="date" id="dateInput" />
+    <button onclick="loadSheet()">Today</button>
+  </div>
+  <div id="sheetContainer"></div>
 
-  async function loadSheetForDate(date) {
-    const gid = await getGidForDate(date);
-    if (!gid) {
-      alert(`⚠️ No se encontró la hoja para: ${date.toISOString().split('T')[0]}\nAsegúrate de que esté en GIDMAP.`);
-      return;
+  <script>
+    const SHEET_ID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY"; // ID de la hoja base
+    const PUBLISHED_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
+
+    function formatDate(date) {
+      return date.toISOString().split("T")[0];
     }
 
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pubhtml?gid=${gid}&single=true`;
-    iframe.width = "100%";
-    iframe.height = "600px";
-    iframe.style.border = "1px solid #ccc";
+    function loadSheet() {
+      const selectedDate = document.getElementById("dateInput").value || formatDate(new Date());
 
-    const container = document.getElementById('sheet-container');
-    container.innerHTML = '';
-    container.appendChild(iframe);
-  }
+      fetch(`https://opensheet.elk.sh/${SHEET_ID}/GIDMAP`)
+        .then((response) => response.json())
+        .then((rows) => {
+          const match = rows.find((row) => row.FECHA === selectedDate);
+          if (match && match.GID) {
+            const gid = match.GID;
+            const url = `${PUBLISHED_BASE}${gid}&single=true`;
+            document.getElementById("sheetContainer").innerHTML = `<iframe src="${url}"></iframe>`;
+          } else {
+            alert(`⚠️ No se encontró la hoja para: ${selectedDate}\nAsegúrate de que esté en GIDMAP.`);
+          }
+        })
+        .catch((error) => {
+          console.error("Error al cargar GIDMAP:", error);
+          alert("❌ Error al buscar la hoja.");
+        });
+    }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    const datePicker = document.getElementById('datePicker');
-    const todayBtn = document.getElementById('todayBtn');
-
-    const today = new Date();
-    datePicker.valueAsDate = today;
-    loadSheetForDate(today);
-
-    datePicker.addEventListener('change', () => {
-      const selectedDate = new Date(datePicker.value);
-      loadSheetForDate(selectedDate);
-    });
-
-    todayBtn.addEventListener('click', () => {
+    // Cargar automáticamente la hoja del día
+    document.addEventListener("DOMContentLoaded", () => {
       const today = new Date();
-      datePicker.valueAsDate = today;
-      loadSheetForDate(today);
+      document.getElementById("dateInput").value = formatDate(today);
+      loadSheet();
     });
-  });
-</script>
+  </script>
+</body>
+</html>
