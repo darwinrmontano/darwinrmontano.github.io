@@ -1,100 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>📋 Maintenance Logs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 40px 20px;
-      background: #f0f0f0;
-      color: #333;
+      background: #f2f2f2;
+      padding: 20px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 24px;
       text-align: center;
     }
-
-    h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-
-    p {
+    .controls {
       margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
-
-    input[type="date"] {
-      padding: 5px;
-      font-size: 16px;
-    }
-
-    button {
-      padding: 6px 14px;
-      font-size: 16px;
-      margin-left: 10px;
-      cursor: pointer;
-    }
-
     iframe {
-      margin-top: 30px;
-      width: 95%;
+      width: 100%;
+      max-width: 1000px;
       height: 600px;
       border: 1px solid #ccc;
       border-radius: 10px;
     }
+    input[type="date"], button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
-  <h1>📋 Maintenance Logs</h1>
-  <p>Select a date to view tasks</p>
 
-  <input type="date" id="datePicker">
-  <button onclick="goToToday()">📅 Today</button>
+  <h1>📅 Maintenance Logs</h1>
+
+  <div class="controls">
+    <input type="date" id="dateInput">
+    <button onclick="setToday()">Today</button>
+  </div>
 
   <iframe id="sheetFrame" src="" allowfullscreen></iframe>
 
   <script>
-    const gidMapURL = "https://docs.google.com/spreadsheets/d/10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY/gviz/tq?tqx=out:csv&sheet=GIDMAP";
-    const basePubURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_S0myJmpCUaj0olQ5xgczB-3AMPtBELZzCzzNZcN9eXfvPb1cq4MOc_dL41iPhaopNvJnmnevgSxd/pubhtml?gid=";
+    const sheetID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
+    const gidMapSheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=GIDMAP`;
 
-    function formatDate(date) {
-      return date.toISOString().split('T')[0];
+    const dateInput = document.getElementById("dateInput");
+    const sheetFrame = document.getElementById("sheetFrame");
+
+    // Función para establecer la fecha de hoy en el input
+    function setToday() {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+      loadSheet(today);
     }
 
-    function goToToday() {
-      const today = new Date();
-      document.getElementById('datePicker').value = formatDate(today);
-      loadSheet();
-    }
+    // Cargar hoja al cambiar la fecha
+    dateInput.addEventListener("change", () => {
+      const selectedDate = new Date(dateInput.value).toISOString().split('T')[0];
+      loadSheet(selectedDate);
+    });
 
-    async function loadSheet() {
-      const selectedDate = document.getElementById('datePicker').value;
-      if (!selectedDate) return;
+    function loadSheet(dateStr) {
+      fetch(gidMapSheetURL)
+        .then(res => res.text())
+        .then(text => {
+          const json = JSON.parse(text.substring(47).slice(0, -2));
+          const rows = json.table.rows;
 
-      try {
-        const response = await fetch(gidMapURL);
-        const csv = await response.text();
-        const lines = csv.split("\n").slice(1); // skip header
-        const map = {};
-        for (const line of lines) {
-          const [name, gid] = line.trim().split(",");
-          if (name && gid) map[name] = gid;
-        }
+          const map = {};
+          rows.forEach(row => {
+            const fecha = row.c[0]?.v;
+            const gid = row.c[1]?.v;
+            if (fecha && gid) {
+              map[fecha] = gid;
+            }
+          });
 
-        const gid = map[selectedDate];
-        if (!gid) {
-          alert(`⚠️ No se encontró la hoja para: ${selectedDate}\nAsegúrate de que esté en GIDMAP.`);
-          return;
-        }
-
-        const frameURL = basePubURL + gid + "&single=true&widget=true&headers=false";
-        document.getElementById('sheetFrame').src = frameURL;
-      } catch (error) {
-        alert("❌ Error cargando GIDMAP.");
-      }
-    }
-
-    document.getElementById('datePicker').addEventListener('change', loadSheet);
-    goToToday();
-  </script>
-</body>
-</html>
+          if (map[dateStr]) {
+            const url = `https://docs.google.com/spreadsheets/d/${sheetID}/pubhtml?gid=${map[dateStr]}&single=true`;
+            sheetFrame.src = url;
+          } else {
+            alert(`⚠️ No se encon
