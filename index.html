@@ -1,92 +1,67 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>📋 Maintenance Logs</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 40px;
-      background: #f9f9f9;
+      padding: 20px;
+      background: #f4f4f4;
       color: #333;
-    }
-    h1 {
       text-align: center;
-      font-size: 28px;
-    }
-    .center {
-      text-align: center;
-      margin-bottom: 20px;
     }
     iframe {
-      display: block;
-      margin: auto;
-      width: 95%;
+      width: 100%;
       height: 600px;
       border: 1px solid #ccc;
-      border-radius: 10px;
-    }
-    input[type="date"] {
-      padding: 5px;
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    button {
-      padding: 5px 15px;
-      font-size: 16px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
   <h1>📅 Maintenance Logs</h1>
-
-  <div class="center">
-    <input type="date" id="datePicker" />
-    <button onclick="loadSheet()">Today</button>
-  </div>
-
-  <iframe id="sheetFrame" src="" allowfullscreen></iframe>
+  <iframe id="hoja" loading="lazy"></iframe>
 
   <script>
-    const spreadsheetId = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
-    const gidmapSheetName = "GIDMAP";
+    const HOJA_ID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY"; // Tu ID de hoja de cálculo
+    const GIDMAP_SHEET_GID = "289397948"; // GID de la hoja GIDMAP publicada
 
-    document.getElementById("datePicker").valueAsDate = new Date();
-
-    async function loadSheet() {
-      const selectedDate = document.getElementById("datePicker").value;
-      if (!selectedDate) return alert("Selecciona una fecha.");
-
-      const gid = await fetchGID(selectedDate);
-      if (!gid) return alert("❌ Error al buscar la hoja.");
-
-      const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-      document.getElementById("sheetFrame").src = url;
+    function getToday() {
+      const today = new Date();
+      today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+      return today.toISOString().split("T")[0]; // yyyy-MM-dd
     }
 
-    async function fetchGID(date) {
-      const url = `https://opensheet.elk.sh/${spreadsheetId}/${gidmapSheetName}`;
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        const row = data.find(d => d.FECHA === date);
-        return row ? row.GID : null;
-      } catch (error) {
-        console.error("Error al obtener el GID:", error);
-        return null;
+    function loadIframe(gid) {
+      const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
+      document.getElementById("hoja").src = url;
+    }
+
+    async function buscarGID(fecha) {
+      const urlCSV = `https://docs.google.com/spreadsheets/d/${HOJA_ID}/gviz/tq?tqx=out:csv&gid=${GIDMAP_SHEET_GID}`;
+      const response = await fetch(urlCSV);
+      const text = await response.text();
+      const rows = text.trim().split("\n").map(line => line.split(","));
+
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i][0] === fecha) {
+          return rows[i][1];
+        }
       }
+      return null;
     }
 
-    // Cargar automáticamente al inicio
-    window.onload = loadSheet;
+    (async () => {
+      const fecha = getToday();
+      const gid = await buscarGID(fecha);
+      if (gid) {
+        loadIframe(gid);
+      } else {
+        alert("⚠️ No se encontró la hoja para hoy.");
+      }
+    })();
   </script>
 </body>
 </html>
