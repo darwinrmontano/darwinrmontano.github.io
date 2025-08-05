@@ -1,104 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>📋 Maintenance Logs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    h1 {
-      margin-bottom: 20px;
-      font-size: 24px;
-      text-align: center;
-    }
-    .controls {
-      margin-bottom: 20px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    iframe {
-      width: 100%;
-      max-width: 1000px;
-      height: 600px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-    }
-    input[type="date"], button {
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
-      border: none;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-  </style>
-</head>
-<body>
+<script>
+  const SHEET_ID = '2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd';
+  const GIDMAP_SHEET_ID = '10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY';
+  const GIDMAP_SHEET_GID = '2048853738';
 
-  <h1>📅 Maintenance Logs</h1>
+  async function getGidForDate(date) {
+    const formattedDate = date.toISOString().split('T')[0]; // yyyy-mm-dd
+    const url = `https://docs.google.com/spreadsheets/d/${GIDMAP_SHEET_ID}/gviz/tq?tqx=out:json&gid=${GIDMAP_SHEET_GID}`;
+    
+    const res = await fetch(url);
+    const text = await res.text();
+    const json = JSON.parse(text.substr(47).slice(0, -2));
+    const rows = json.table.rows;
 
-  <div class="controls">
-    <input type="date" id="dateInput">
-    <button onclick="setToday()">Today</button>
-  </div>
+    for (let row of rows) {
+      const sheetDate = row.c[0]?.v;
+      const gid = row.c[1]?.v?.toString();
+      if (sheetDate === formattedDate) {
+        return gid;
+      }
+    }
+    return null;
+  }
 
-  <iframe id="sheetFrame" src="" allowfullscreen></iframe>
-
-  <script>
-    const sheetID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
-    const gidMapSheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=GIDMAP`;
-
-    const dateInput = document.getElementById("dateInput");
-    const sheetFrame = document.getElementById("sheetFrame");
-
-    // Función para establecer la fecha de hoy en el input
-    function setToday() {
-      const today = new Date().toISOString().split('T')[0];
-      dateInput.value = today;
-      loadSheet(today);
+  async function loadSheetForDate(date) {
+    const gid = await getGidForDate(date);
+    if (!gid) {
+      alert(`⚠️ No se encontró la hoja para: ${date.toISOString().split('T')[0]}\nAsegúrate de que esté en GIDMAP.`);
+      return;
     }
 
-    // Cargar hoja al cambiar la fecha
-    dateInput.addEventListener("change", () => {
-      const selectedDate = new Date(dateInput.value).toISOString().split('T')[0];
-      loadSheet(selectedDate);
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pubhtml?gid=${gid}&single=true`;
+    iframe.width = "100%";
+    iframe.height = "600px";
+    iframe.style.border = "1px solid #ccc";
+
+    const container = document.getElementById('sheet-container');
+    container.innerHTML = '';
+    container.appendChild(iframe);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const datePicker = document.getElementById('datePicker');
+    const todayBtn = document.getElementById('todayBtn');
+
+    const today = new Date();
+    datePicker.valueAsDate = today;
+    loadSheetForDate(today);
+
+    datePicker.addEventListener('change', () => {
+      const selectedDate = new Date(datePicker.value);
+      loadSheetForDate(selectedDate);
     });
 
-    function loadSheet(dateStr) {
-      fetch(gidMapSheetURL)
-        .then(res => res.text())
-        .then(text => {
-          const json = JSON.parse(text.substring(47).slice(0, -2));
-          const rows = json.table.rows;
-
-          const map = {};
-          rows.forEach(row => {
-            const fecha = row.c[0]?.v;
-            const gid = row.c[1]?.v;
-            if (fecha && gid) {
-              map[fecha] = gid;
-            }
-          });
-
-          if (map[dateStr]) {
-            const url = `https://docs.google.com/spreadsheets/d/${sheetID}/pubhtml?gid=${map[dateStr]}&single=true`;
-            sheetFrame.src = url;
-          } else {
-            alert(`⚠️ No se encon
+    todayBtn.addEventListener('click', () => {
+      const today = new Date();
+      datePicker.valueAsDate = today;
+      loadSheetForDate(today);
+    });
+  });
+</script>
