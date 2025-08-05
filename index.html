@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>📋 Maintenance Logs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -55,7 +55,6 @@
   </style>
 </head>
 <body>
-
   <h1>📋 Maintenance Logs</h1>
   <h2>Select a date to view tasks</h2>
 
@@ -69,38 +68,39 @@
   </div>
 
   <script>
-    // Tu enlace público BASE (reemplaza este solo si cambia el ID de tu hoja)
-    const sheetBaseURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?single=true&gid=";
+    const sheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY"; // Tu ID de hoja
 
-    // Mapeo de fechas a GID
-    function getGidFromDate(dateString) {
-      const gidMap = {
-        "08/04/2025": "0" // Aquí vas agregando más fechas y GIDs cuando tengas más hojas
-      };
-      return gidMap[dateString] || "0"; // Si no encuentra, muestra la hoja base
+    // Formatea fecha a MM-DD-YYYY
+    function formatDateToSheetName(date) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${month}-${day}-${year}`;
     }
 
-    // Ir a la hoja de hoy
+    // Carga hoja correcta usando el nombre como sheet parameter
+    function loadSheetForDate(date) {
+      const formattedDate = formatDateToSheetName(date);
+      const iframe = document.getElementById("sheetFrame");
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:html&sheet=${formattedDate}`;
+      iframe.src = url;
+    }
+
+    // Botón Today
     function goToToday() {
       const today = new Date();
-      const formatted = today.toISOString().split('T')[0]; // yyyy-mm-dd para el selector
-      document.getElementById("datePicker").value = formatted;
-      const usFormat = today.toLocaleDateString("en-US"); // MM/DD/YYYY para el gidMap
-      const gid = getGidFromDate(usFormat);
-      document.getElementById("sheetFrame").src = sheetBaseURL + gid;
+      document.getElementById("datePicker").value = today.toISOString().split('T')[0];
+      loadSheetForDate(today);
     }
 
-    // Cuando el usuario elige una fecha manualmente
+    // Cuando cambia la fecha manualmente
     document.getElementById("datePicker").addEventListener("change", function () {
       const selectedDate = new Date(this.value);
-      const formatted = selectedDate.toLocaleDateString("en-US"); // MM/DD/YYYY
-      const gid = getGidFromDate(formatted);
-      document.getElementById("sheetFrame").src = sheetBaseURL + gid;
+      loadSheetForDate(selectedDate);
     });
 
-    // Cargar automáticamente la hoja de hoy al iniciar
+    // Al cargar la página
     window.onload = goToToday;
   </script>
-
 </body>
 </html>
