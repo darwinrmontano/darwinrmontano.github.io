@@ -36,21 +36,13 @@
       border: 1px solid #ccc;
     }
 
-    .table-container {
-      overflow-x: auto;
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
     iframe {
       width: 100%;
       height: 600px;
       border: none;
       border-radius: 10px;
       display: block;
-      margin-top: 10px;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -63,14 +55,19 @@
     <button onclick="goToToday()">📅 Today</button>
   </div>
 
-  <div class="table-container">
-    <iframe id="sheetFrame" src=""></iframe>
-  </div>
+  <iframe id="sheetFrame" src=""></iframe>
 
   <script>
-    const sheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY"; // Tu ID de hoja
+    const sheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY"; // Tu ID real
 
-    // Formatea fecha a MM-DD-YYYY
+    // Usa fecha local y fuerza zona horaria correcta
+    function getLocalDate() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      now.setMinutes(now.getMinutes() - offset);
+      return now;
+    }
+
     function formatDateToSheetName(date) {
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const day = date.getDate().toString().padStart(2, '0');
@@ -78,28 +75,26 @@
       return `${month}-${day}-${year}`;
     }
 
-    // Carga hoja correcta usando el nombre como sheet parameter
     function loadSheetForDate(date) {
-      const formattedDate = formatDateToSheetName(date);
+      const formattedName = formatDateToSheetName(date);
       const iframe = document.getElementById("sheetFrame");
-      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:html&sheet=${formattedDate}`;
+
+      // Usamos pubhtml para mostrar el contenido completo (no como tabla)
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml?gid=0&single=true&widget=true&headers=false&sheet=${formattedName}`;
       iframe.src = url;
     }
 
-    // Botón Today
     function goToToday() {
-      const today = new Date();
+      const today = getLocalDate();
       document.getElementById("datePicker").value = today.toISOString().split('T')[0];
       loadSheetForDate(today);
     }
 
-    // Cuando cambia la fecha manualmente
     document.getElementById("datePicker").addEventListener("change", function () {
       const selectedDate = new Date(this.value);
       loadSheetForDate(selectedDate);
     });
 
-    // Al cargar la página
     window.onload = goToToday;
   </script>
 </body>
