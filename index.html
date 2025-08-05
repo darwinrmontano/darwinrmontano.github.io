@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>📋 Maintenance Logs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f4f4;
+      padding: 40px 20px;
+      background: #f0f0f0;
       color: #333;
       text-align: center;
     }
@@ -18,27 +18,25 @@
       margin-bottom: 10px;
     }
 
+    p {
+      margin-bottom: 20px;
+    }
+
     input[type="date"] {
-      font-size: 18px;
-      padding: 6px;
-      border-radius: 5px;
-      border: 1px solid #aaa;
+      padding: 5px;
+      font-size: 16px;
     }
 
     button {
-      font-size: 18px;
-      padding: 6px 12px;
+      padding: 6px 14px;
+      font-size: 16px;
       margin-left: 10px;
-      border: none;
-      background-color: #f0f0f0;
-      border-radius: 5px;
       cursor: pointer;
     }
 
     iframe {
       margin-top: 30px;
-      width: 100%;
-      max-width: 100%;
+      width: 95%;
       height: 600px;
       border: 1px solid #ccc;
       border-radius: 10px;
@@ -47,75 +45,56 @@
 </head>
 <body>
   <h1>📋 Maintenance Logs</h1>
-  <p><strong>Select a date to view tasks</strong></p>
+  <p>Select a date to view tasks</p>
 
   <input type="date" id="datePicker">
   <button onclick="goToToday()">📅 Today</button>
 
-  <iframe id="sheetFrame" src=""></iframe>
+  <iframe id="sheetFrame" src="" allowfullscreen></iframe>
 
   <script>
-    const GIDMAP_URL = "https://docs.google.com/spreadsheets/d/10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY/gviz/tq?tqx=out:csv&sheet=GIDMAP";
-    const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
-
-    let gidMap = {};
-
-    async function fetchGIDMap() {
-      const response = await fetch(GIDMAP_URL);
-      const csv = await response.text();
-      const lines = csv.trim().split("\n");
-      for (let i = 1; i < lines.length; i++) {
-        const [name, gid] = lines[i].split(",");
-        gidMap[name] = gid;
-      }
-    }
+    const gidMapURL = "https://docs.google.com/spreadsheets/d/10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY/gviz/tq?tqx=out:csv&sheet=GIDMAP";
+    const basePubURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_S0myJmpCUaj0olQ5xgczB-3AMPtBELZzCzzNZcN9eXfvPb1cq4MOc_dL41iPhaopNvJnmnevgSxd/pubhtml?gid=";
 
     function formatDate(date) {
-      const d = new Date(date);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${mm}/${dd}/${yyyy}`;
-    }
-
-    function getSheetName(date) {
-      const d = new Date(date);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
-    function loadSheet(date) {
-      const name = getSheetName(date);
-      if (gidMap[name]) {
-        document.getElementById("sheetFrame").src = BASE_URL + gidMap[name] + "&single=true";
-      } else {
-        alert(`⚠️ No se encontró la hoja para: ${name}\nAsegúrate de que esté en GIDMAP.`);
-      }
-    }
-
-    async function init() {
-      await fetchGIDMap();
-
-      const today = new Date();
-      const datePicker = document.getElementById("datePicker");
-      datePicker.valueAsDate = today;
-
-      datePicker.addEventListener("change", () => {
-        loadSheet(datePicker.value);
-      });
-
-      loadSheet(today);
+      return date.toISOString().split('T')[0];
     }
 
     function goToToday() {
       const today = new Date();
-      document.getElementById("datePicker").valueAsDate = today;
-      loadSheet(today);
+      document.getElementById('datePicker').value = formatDate(today);
+      loadSheet();
     }
 
-    init();
+    async function loadSheet() {
+      const selectedDate = document.getElementById('datePicker').value;
+      if (!selectedDate) return;
+
+      try {
+        const response = await fetch(gidMapURL);
+        const csv = await response.text();
+        const lines = csv.split("\n").slice(1); // skip header
+        const map = {};
+        for (const line of lines) {
+          const [name, gid] = line.trim().split(",");
+          if (name && gid) map[name] = gid;
+        }
+
+        const gid = map[selectedDate];
+        if (!gid) {
+          alert(`⚠️ No se encontró la hoja para: ${selectedDate}\nAsegúrate de que esté en GIDMAP.`);
+          return;
+        }
+
+        const frameURL = basePubURL + gid + "&single=true&widget=true&headers=false";
+        document.getElementById('sheetFrame').src = frameURL;
+      } catch (error) {
+        alert("❌ Error cargando GIDMAP.");
+      }
+    }
+
+    document.getElementById('datePicker').addEventListener('change', loadSheet);
+    goToToday();
   </script>
 </body>
 </html>
