@@ -1,64 +1,108 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>📋 Maintenance Logs</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📅 Maintenance Logs</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      color: #333;
       margin: 0;
+      background-color: #f4f4f4;
     }
-    h1 {
-      background: #222;
-      color: white;
-      margin: 0;
-      padding: 20px;
+    header {
+      background-color: #222;
+      color: #fff;
+      padding: 15px 10px;
       text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    header h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: normal;
     }
     iframe {
       width: 100%;
-      height: 90vh;
+      height: 85vh;
       border: none;
     }
-    #error {
-      text-align: center;
+    #error-message {
       color: red;
-      margin-top: 20px;
+      text-align: center;
       font-weight: bold;
+      padding: 20px;
+      font-size: 16px;
+    }
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 20px;
+      }
+      header h2 {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>📅 Maintenance Logs<br><small>Hoja del día actual</small></h1>
-  <iframe id="sheetFrame"></iframe>
-  <div id="error"></div>
+  <header>
+    <h1>📅 Maintenance Logs</h1>
+    <h2>Hoja del día actual</h2>
+  </header>
+  <div id="sheet-container"></div>
+  <div id="error-message"></div>
 
   <script>
     const gidMapUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/gviz/tq?tqx=out:json&sheet=GIDMAP";
 
-    fetch(gidMapUrl)
-      .then(response => response.text())
-      .then(data => {
-        const json = JSON.parse(data.substr(47).slice(0, -2));
-        const rows = json.table.rows;
-        const today = new Date().toISOString().split('T')[0];
+    async function fetchGIDMap() {
+      const response = await fetch(gidMapUrl);
+      const text = await response.text();
+      const json = JSON.parse(text.substr(47).slice(0, -2));
 
-        const match = rows.find(r => r.c[0]?.v === today);
+      const rows = json.table.rows;
+      const map = {};
+      for (const row of rows) {
+        const date = row.c[0]?.v;
+        const gid = row.c[1]?.v;
+        if (date && gid) map[date] = gid;
+      }
+      return map;
+    }
 
-        if (match) {
-          const gid = match.c[1]?.v;
-          const iframeUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-          document.getElementById("sheetFrame").src = iframeUrl;
-        } else {
-          document.getElementById("error").textContent = "⚠️ GID no encontrado para hoy.";
+    function getTodayDate() {
+      const today = new Date();
+      today.setHours(today.getHours() - 5); // Ajuste por zona horaria (si es necesario)
+      return today.toISOString().split("T")[0];
+    }
+
+    async function loadSheet() {
+      try {
+        const gidMap = await fetchGIDMap();
+        const today = getTodayDate();
+        const gid = gidMap[today];
+
+        if (!gid) {
+          document.getElementById("error-message").textContent = `⚠️ No se encontró la hoja para hoy (${today}).`;
+          return;
         }
-      })
-      .catch(error => {
-        document.getElementById("error").textContent = "⚠️ Error al cargar la hoja de cálculo.";
-        console.error("Error al obtener GIDMAP:", error);
-      });
+
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
+        document.getElementById("sheet-container").appendChild(iframe);
+      } catch (err) {
+        document.getElementById("error-message").textContent = "⚠️ Error al cargar la hoja de cálculo.";
+      }
+    }
+
+    loadSheet();
   </script>
 </body>
 </html>
