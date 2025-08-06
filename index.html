@@ -1,98 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>📋 Maintenance Logs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f9f9f9;
-      color: #333;
       margin: 0;
-      padding: 20px;
+      background: #f2f2f2;
     }
     h1 {
       text-align: center;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      text-align: center;
+      font-size: 24px;
+      margin-top: 20px;
+      color: #333;
     }
     iframe {
+      display: block;
       width: 100%;
-      height: 600px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-    input[type="date"] {
-      padding: 8px;
-      font-size: 16px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 8px 16px;
-      font-size: 16px;
-      margin-left: 10px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
+      height: 90vh;
       border: none;
-      border-radius: 5px;
-    }
-    button:hover {
-      background-color: #0056b3;
+      margin: 0 auto;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>📋 Maintenance Logs</h1>
-    <input type="date" id="fecha" />
-    <button onclick="cargarHoja()">Today</button>
-    <iframe id="iframe" src=""></iframe>
-  </div>
+  <h1>🗓️ Maintenance Tasks - Daily View</h1>
+  <iframe id="sheetFrame" src=""></iframe>
 
   <script>
-    const spreadsheetId = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY"; // Tu ID real
-    const gidMapUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=GIDMAP`;
+    async function loadSheet() {
+      const sheetID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
+      const gidMapSheet = "https://docs.google.com/spreadsheets/d/" + sheetID + "/gviz/tq?tqx=out:json&sheet=GIDMAP";
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const hoy = new Date().toISOString().split("T")[0];
-      document.getElementById("fecha").value = hoy;
-      cargarHoja();
-    });
+      const today = new Date().toISOString().split("T")[0];
 
-    function cargarHoja() {
-      const fecha = document.getElementById("fecha").value;
-      fetch(gidMapUrl)
-        .then(res => res.text())
-        .then(text => {
-          const json = JSON.parse(text.substr(47).slice(0, -2));
-          const rows = json.table.rows;
-          const mapa = {};
-          rows.forEach(row => {
-            const f = row.c[0]?.v;
-            const g = row.c[1]?.v;
-            if (f && g) mapa[f] = g;
-          });
+      try {
+        const response = await fetch(gidMapSheet);
+        const text = await response.text();
+        const json = JSON.parse(text.substr(47).slice(0, -2));
 
-          const gid = mapa[fecha];
-          if (gid) {
-            const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
-            document.getElementById("iframe").src = url;
-          } else {
-            alert("⚠️ No se encontró la hoja para hoy.");
-            document.getElementById("iframe").src = "";
-          }
-        })
-        .catch(() => {
-          alert("❌ Error al buscar la hoja.");
-        });
+        const rows = json.table.rows;
+        const row = rows.find(r => r.c[0]?.v === today);
+
+        if (row) {
+          const gid = row.c[1].v;
+          const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
+          document.getElementById("sheetFrame").src = sheetURL;
+        } else {
+          alert("⚠️ No se encontró la hoja para hoy.");
+        }
+      } catch (e) {
+        alert("❌ Error al cargar la hoja de cálculo.");
+        console.error(e);
+      }
     }
+
+    loadSheet();
   </script>
 </body>
 </html>
