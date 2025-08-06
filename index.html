@@ -1,85 +1,88 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📋 Maintenance Logs</title>
+  <meta charset="UTF-8">
+  <title>📋 Maintenance Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 0;
-      margin: 0;
+      padding: 20px;
       background: #f4f4f4;
-      color: #333;
-    }
-    header {
-      background-color: #222;
-      color: white;
-      padding: 20px;
       text-align: center;
     }
+
     h1 {
-      margin: 0;
-      font-size: 24px;
+      margin-bottom: 10px;
     }
-    h2 {
+
+    select, button {
+      padding: 8px 12px;
+      margin: 5px;
       font-size: 16px;
-      font-weight: normal;
-      margin-top: 5px;
     }
-    .container {
-      padding: 20px;
-      text-align: center;
-    }
+
     iframe {
-      width: 95%;
+      width: 100%;
       height: 600px;
       border: 1px solid #ccc;
-      border-radius: 10px;
-    }
-    .error {
-      color: red;
       margin-top: 20px;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>📅 Maintenance Logs</h1>
-    <h2>Hoja del día actual o seleccionada</h2>
-  </header>
 
-  <div class="container">
-    <iframe id="sheetFrame" src=""></iframe>
-    <div class="error" id="errorMsg" style="display: none;">⚠️ Error al cargar la hoja de cálculo.</div>
-  </div>
+  <h1>🛠️ Maintenance Tasks</h1>
+  <p>Selecciona una fecha para ver las tareas:</p>
+
+  <select id="dateSelector"></select>
+  <button onclick="loadToday()">HOY</button>
+
+  <iframe id="sheetFrame" src=""></iframe>
 
   <script>
-    async function loadTodaySheet() {
-      const sheetID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
-      const today = new Date().toISOString().slice(0, 10); // formato YYYY-MM-DD
-      const gidMapURL = `https://opensheet.elk.sh/${sheetID}/GIDMAP`;
+    const gidMapUrl = "https://opensheet.elk.sh/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/GIDMAP";
+    const baseSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
 
-      try {
-        const response = await fetch(gidMapURL);
-        const data = await response.json();
+    const selector = document.getElementById("dateSelector");
+    const frame = document.getElementById("sheetFrame");
+    let gidMap = [];
 
-        const row = data.find(r => r.FECHA === today);
+    async function loadGIDMap() {
+      const res = await fetch(gidMapUrl);
+      gidMap = await res.json();
 
-        if (row && row.GID) {
-          const gid = row.GID;
-          const iframeURL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-          document.getElementById("sheetFrame").src = iframeURL;
-        } else {
-          throw new Error("GID no encontrado para la fecha de hoy.");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        document.getElementById("errorMsg").style.display = "block";
+      // Rellenar selector
+      gidMap.forEach(entry => {
+        const option = document.createElement("option");
+        option.value = entry.GID;
+        option.textContent = entry.FECHA;
+        selector.appendChild(option);
+      });
+
+      // Cargar por defecto hoja del día actual
+      loadToday();
+    }
+
+    function loadToday() {
+      const today = new Date().toISOString().split("T")[0];
+      const todayEntry = gidMap.find(entry => entry.FECHA === today);
+      if (todayEntry) {
+        frame.src = baseSheetUrl + todayEntry.GID + "&single=true";
+        selector.value = todayEntry.GID;
+      } else {
+        frame.src = "";
+        alert("No hay hoja para hoy: " + today);
       }
     }
 
-    loadTodaySheet();
+    selector.addEventListener("change", () => {
+      const gid = selector.value;
+      frame.src = baseSheetUrl + gid + "&single=true";
+    });
+
+    // Cargar todo al iniciar
+    loadGIDMap();
   </script>
 </body>
 </html>
