@@ -1,108 +1,84 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📅 Maintenance Logs</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
     }
     header {
-      background-color: #222;
-      color: #fff;
-      padding: 15px 10px;
+      background: #222;
+      color: white;
+      padding: 20px;
       text-align: center;
     }
     header h1 {
       margin: 0;
       font-size: 24px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
     }
-    header h2 {
+    header p {
       margin: 0;
       font-size: 16px;
-      font-weight: normal;
+      opacity: 0.8;
     }
     iframe {
       width: 100%;
-      height: 85vh;
+      height: 90vh;
       border: none;
     }
-    #error-message {
+    .error {
       color: red;
       text-align: center;
-      font-weight: bold;
       padding: 20px;
-      font-size: 16px;
-    }
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 20px;
-      }
-      header h2 {
-        font-size: 14px;
-      }
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
+
   <header>
     <h1>📅 Maintenance Logs</h1>
-    <h2>Hoja del día actual</h2>
+    <p>Hoja del día actual</p>
   </header>
-  <div id="sheet-container"></div>
-  <div id="error-message"></div>
+
+  <div id="contenido">
+    <p class="error" id="errorMsg" style="display:none;">⚠️ Error al cargar la hoja de cálculo.</p>
+  </div>
 
   <script>
-    const gidMapUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/gviz/tq?tqx=out:json&sheet=GIDMAP";
+    const sheetID = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
+    const gidMapURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:csv&sheet=GIDMAP`;
 
-    async function fetchGIDMap() {
-      const response = await fetch(gidMapUrl);
-      const text = await response.text();
-      const json = JSON.parse(text.substr(47).slice(0, -2));
-
-      const rows = json.table.rows;
-      const map = {};
-      for (const row of rows) {
-        const date = row.c[0]?.v;
-        const gid = row.c[1]?.v;
-        if (date && gid) map[date] = gid;
-      }
-      return map;
-    }
-
-    function getTodayDate() {
-      const today = new Date();
-      today.setHours(today.getHours() - 5); // Ajuste por zona horaria (si es necesario)
-      return today.toISOString().split("T")[0];
-    }
-
-    async function loadSheet() {
+    async function obtenerGID() {
+      const hoy = new Date().toISOString().slice(0, 10);
       try {
-        const gidMap = await fetchGIDMap();
-        const today = getTodayDate();
-        const gid = gidMap[today];
-
-        if (!gid) {
-          document.getElementById("error-message").textContent = `⚠️ No se encontró la hoja para hoy (${today}).`;
-          return;
-        }
-
-        const iframe = document.createElement("iframe");
-        iframe.src = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-        document.getElementById("sheet-container").appendChild(iframe);
-      } catch (err) {
-        document.getElementById("error-message").textContent = "⚠️ Error al cargar la hoja de cálculo.";
+        const response = await fetch(gidMapURL);
+        if (!response.ok) throw new Error("No se pudo cargar GIDMAP");
+        const texto = await response.text();
+        const filas = texto.split("\n").map(row => row.split(","));
+        const encabezados = filas[0];
+        const filaHoy = filas.find(fila => fila[0] === hoy);
+        if (!filaHoy) throw new Error("Fecha no encontrada en GIDMAP");
+        const gid = filaHoy[1];
+        mostrarIframe(gid);
+      } catch (error) {
+        document.getElementById("errorMsg").style.display = "block";
+        console.error(error);
       }
     }
 
-    loadSheet();
+    function mostrarIframe(gid) {
+      const iframe = document.createElement("iframe");
+      iframe.src = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0olQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iPhaopNvJnmmevgSxd/pubhtml?gid=${gid}&single=true`;
+      document.getElementById("contenido").appendChild(iframe);
+    }
+
+    obtenerGID();
   </script>
 </body>
 </html>
