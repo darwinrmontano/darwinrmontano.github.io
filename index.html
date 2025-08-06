@@ -1,5 +1,5 @@
 <script>
-  const spreadsheetId = "2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd";
+  const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
   const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/GIDMAP`;
 
   const selector = document.getElementById("dateSelector");
@@ -19,7 +19,6 @@
         }
       });
 
-      // Cargar hoja de hoy automáticamente
       const today = new Date().toISOString().split("T")[0];
       if (gidMap[today]) {
         loadSheet(gidMap[today]);
@@ -28,7 +27,7 @@
     });
 
   function loadSheet(gid) {
-    const url = `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/pubhtml?gid=${gid}&single=true`;
+    const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
     iframe.src = url;
   }
 
