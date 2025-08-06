@@ -1,72 +1,102 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📅 Maintenance Logs</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📋 Maintenance Logs</title>
   <style>
     body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
-      background: #f9f9f9;
     }
+
     header {
-      background-color: #1a1a1a;
+      background: #222;
       color: white;
-      padding: 10px;
+      padding: 20px;
       text-align: center;
     }
-    iframe {
-      width: 100%;
-      height: 90vh;
-      border: none;
+
+    select {
       display: block;
+      margin: 20px auto;
+      font-size: 16px;
+      padding: 8px;
     }
-    .error {
-      color: red;
-      text-align: center;
-      font-weight: bold;
-      margin-top: 20px;
+
+    iframe {
+      width: 95%;
+      height: 600px;
+      display: block;
+      margin: auto;
+      border: none;
+      background: white;
     }
   </style>
 </head>
 <body>
-
   <header>
-    <h2>📆 Maintenance Logs</h2>
-    <p>Hoja del día actual</p>
+    <h2>📅 Maintenance Logs</h2>
+    <p>Hoja del día actual o seleccionada</p>
   </header>
 
-  <div id="spreadsheetContainer"></div>
+  <select id="dateSelector"></select>
+
+  <iframe id="sheetFrame" src=""></iframe>
 
   <script>
-    // 🗓️ Mapa de fechas y GIDs correctos
-    const gidMap = {
-      "2025-08-03": "553501387",
-      "2025-08-04": "1522752893",
-      "2025-08-05": "453363638"
-    };
+    const sheetID = "2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd";
+    const gidMapSheet = "GIDMAP";
 
-    // 📅 Obtener fecha actual en formato YYYY-MM-DD
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
+    const selector = document.getElementById("dateSelector");
+    const iframe = document.getElementById("sheetFrame");
 
-    // 🔗 Enlace base de la hoja publicada
-    const baseUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
+    // Leer la hoja GIDMAP en formato JSON
+    async function loadGIDMap() {
+      const url = `https://opensheet.elk.sh/${sheetID}/${gidMapSheet}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
 
-    const gid = gidMap[todayStr];
+        // Limpiar selector actual
+        selector.innerHTML = "";
 
-    if (gid) {
-      const url = `${baseUrl}${gid}&single=true`;
-      document.getElementById("spreadsheetContainer").innerHTML = `<iframe src="${url}"></iframe>`;
-    } else {
-      document.getElementById("spreadsheetContainer").innerHTML = `<p class="error">⚠️ Error al cargar la hoja de cálculo.</p>`;
+        data.forEach(row => {
+          const option = document.createElement("option");
+          option.value = row.gid;
+          option.textContent = row.fecha;
+          selector.appendChild(option);
+        });
+
+        // Mostrar la hoja del día actual
+        const today = new Date().toISOString().split("T")[0];
+        const todayOption = [...selector.options].find(opt => opt.textContent === today);
+
+        if (todayOption) {
+          selector.value = todayOption.value;
+        }
+
+        // Cargar la hoja correspondiente
+        updateIframe(selector.value);
+
+      } catch (err) {
+        console.error("Error al cargar GIDMAP:", err);
+        iframe.srcdoc = `<p style="color:red;text-align:center;">⚠️ Error al cargar la hoja de cálculo.</p>`;
+      }
     }
-  </script>
 
+    function updateIframe(gid) {
+      iframe.src = `https://docs.google.com/spreadsheets/d/e/${sheetID}/pubhtml?gid=${gid}&single=true`;
+    }
+
+    selector.addEventListener("change", () => {
+      updateIframe(selector.value);
+    });
+
+    loadGIDMap();
+  </script>
 </body>
 </html>
