@@ -6,66 +6,67 @@
   <title>📅 Maintenance Logs</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      background: #f5f5f5;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
     }
     header {
-      background-color: #1f1f1f;
+      background-color: #1a1a1a;
       color: white;
-      padding: 20px;
+      padding: 10px;
       text-align: center;
     }
-    h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-    h2 {
-      margin-top: 5px;
-      font-size: 18px;
-      font-weight: normal;
-    }
     iframe {
-      display: block;
       width: 100%;
       height: 90vh;
       border: none;
+      display: block;
     }
     .error {
       color: red;
       text-align: center;
-      margin-top: 20px;
       font-weight: bold;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
+
   <header>
-    <h1>📅 Maintenance Logs</h1>
-    <h2>Hoja del día actual</h2>
+    <h2>📆 Maintenance Logs</h2>
+    <p>Hoja del día actual</p>
   </header>
 
-  <div id="contenido"></div>
-  <div id="mensajeError" class="error" style="display:none;">⚠️ Error al cargar la hoja de cálculo.</div>
+  <div id="spreadsheetContainer"></div>
 
   <script>
+    // 🗓️ Mapa de fechas y GIDs correctos
     const gidMap = {
-      "2025-08-03": "716646857",
+      "2025-08-03": "553501387",
       "2025-08-04": "1522752893",
-      "2025-08-05": "4533636388",
-      // Agrega más fechas y GIDs aquí automáticamente con tu script
+      "2025-08-05": "453363638"
     };
 
-    const today = new Date().toISOString().slice(0, 10); // formato YYYY-MM-DD
-    const gid = gidMap[today];
+    // 📅 Obtener fecha actual en formato YYYY-MM-DD
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    // 🔗 Enlace base de la hoja publicada
+    const baseUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
+
+    const gid = gidMap[todayStr];
 
     if (gid) {
-      const iframe = document.createElement("iframe");
-      iframe.src = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-      document.getElementById("contenido").appendChild(iframe);
+      const url = `${baseUrl}${gid}&single=true`;
+      document.getElementById("spreadsheetContainer").innerHTML = `<iframe src="${url}"></iframe>`;
     } else {
-      document.getElementById("mensajeError").style.display = "block";
+      document.getElementById("spreadsheetContainer").innerHTML = `<p class="error">⚠️ Error al cargar la hoja de cálculo.</p>`;
     }
   </script>
+
 </body>
 </html>
