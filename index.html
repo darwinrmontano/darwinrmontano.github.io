@@ -2,101 +2,84 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>📋 Maintenance Logs</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      color: #333;
-      margin: 0;
       padding: 0;
+      margin: 0;
+      background: #f4f4f4;
+      color: #333;
     }
-
     header {
-      background: #222;
+      background-color: #222;
       color: white;
       padding: 20px;
       text-align: center;
     }
-
-    select {
-      display: block;
-      margin: 20px auto;
-      font-size: 16px;
-      padding: 8px;
+    h1 {
+      margin: 0;
+      font-size: 24px;
     }
-
+    h2 {
+      font-size: 16px;
+      font-weight: normal;
+      margin-top: 5px;
+    }
+    .container {
+      padding: 20px;
+      text-align: center;
+    }
     iframe {
       width: 95%;
       height: 600px;
-      display: block;
-      margin: auto;
-      border: none;
-      background: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+    .error {
+      color: red;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <header>
-    <h2>📅 Maintenance Logs</h2>
-    <p>Hoja del día actual o seleccionada</p>
+    <h1>📅 Maintenance Logs</h1>
+    <h2>Hoja del día actual o seleccionada</h2>
   </header>
 
-  <select id="dateSelector"></select>
-
-  <iframe id="sheetFrame" src=""></iframe>
+  <div class="container">
+    <iframe id="sheetFrame" src=""></iframe>
+    <div class="error" id="errorMsg" style="display: none;">⚠️ Error al cargar la hoja de cálculo.</div>
+  </div>
 
   <script>
-    const sheetID = "2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd";
-    const gidMapSheet = "GIDMAP";
+    async function loadTodaySheet() {
+      const sheetID = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
+      const today = new Date().toISOString().slice(0, 10); // formato YYYY-MM-DD
+      const gidMapURL = `https://opensheet.elk.sh/${sheetID}/GIDMAP`;
 
-    const selector = document.getElementById("dateSelector");
-    const iframe = document.getElementById("sheetFrame");
-
-    // Leer la hoja GIDMAP en formato JSON
-    async function loadGIDMap() {
-      const url = `https://opensheet.elk.sh/${sheetID}/${gidMapSheet}`;
       try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const response = await fetch(gidMapURL);
+        const data = await response.json();
 
-        // Limpiar selector actual
-        selector.innerHTML = "";
+        const row = data.find(r => r.FECHA === today);
 
-        data.forEach(row => {
-          const option = document.createElement("option");
-          option.value = row.gid;
-          option.textContent = row.fecha;
-          selector.appendChild(option);
-        });
-
-        // Mostrar la hoja del día actual
-        const today = new Date().toISOString().split("T")[0];
-        const todayOption = [...selector.options].find(opt => opt.textContent === today);
-
-        if (todayOption) {
-          selector.value = todayOption.value;
+        if (row && row.GID) {
+          const gid = row.GID;
+          const iframeURL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
+          document.getElementById("sheetFrame").src = iframeURL;
+        } else {
+          throw new Error("GID no encontrado para la fecha de hoy.");
         }
-
-        // Cargar la hoja correspondiente
-        updateIframe(selector.value);
-
-      } catch (err) {
-        console.error("Error al cargar GIDMAP:", err);
-        iframe.srcdoc = `<p style="color:red;text-align:center;">⚠️ Error al cargar la hoja de cálculo.</p>`;
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("errorMsg").style.display = "block";
       }
     }
 
-    function updateIframe(gid) {
-      iframe.src = `https://docs.google.com/spreadsheets/d/e/${sheetID}/pubhtml?gid=${gid}&single=true`;
-    }
-
-    selector.addEventListener("change", () => {
-      updateIframe(selector.value);
-    });
-
-    loadGIDMap();
+    loadTodaySheet();
   </script>
 </body>
 </html>
