@@ -1,100 +1,49 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>🔧 Maintenance Tracker</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      background: #f1f1f1;
-      color: #333;
-    }
-    h1 {
-      text-align: center;
-      font-size: 28px;
-    }
-    p {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    select, button {
-      padding: 10px;
-      margin: 5px;
-      font-size: 16px;
-    }
-    iframe {
-      display: block;
-      margin: auto;
-      width: 95%;
-      height: 600px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-    }
-  </style>
-</head>
-<body>
+<script>
+  const spreadsheetId = "2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd";
+  const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/GIDMAP`;
 
-  <h1>🔧 Maintenance Tasks</h1>
-  <p>Selecciona una fecha para ver las tareas:</p>
+  const selector = document.getElementById("dateSelector");
+  const iframe = document.getElementById("sheetFrame");
+  const gidMap = {};
 
-  <div style="text-align: center;">
-    <select id="dateSelector"></select>
-    <button onclick="loadToday()">HOY</button>
-  </div>
-
-  <iframe id="sheetFrame" src=""></iframe>
-
-  <script>
-    const gidMapUrl = "https://opensheet.elk.sh/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/GIDMAP";
-    const baseSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
-
-    let gidMap = {};
-
-    async function loadGIDMap() {
-      try {
-        const response = await fetch(gidMapUrl);
-        const data = await response.json();
-        const selector = document.getElementById("dateSelector");
-
-        data.forEach(row => {
+  fetch(gidMapUrl)
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(row => {
+        if (row.FECHA && row.GID) {
           gidMap[row.FECHA] = row.GID;
           const option = document.createElement("option");
           option.value = row.FECHA;
           option.textContent = row.FECHA;
           selector.appendChild(option);
-        });
+        }
+      });
 
-        selector.addEventListener("change", () => {
-          const selectedDate = selector.value;
-          const gid = gidMap[selectedDate];
-          if (gid) {
-            loadSheet(gid);
-          }
-        });
-      } catch (error) {
-        console.error("Error loading GIDMAP:", error);
-      }
-    }
-
-    function loadSheet(gid) {
-      const iframe = document.getElementById("sheetFrame");
-      iframe.src = `${baseSheetUrl}${gid}&single=true&widget=true&headers=false`;
-    }
-
-    function loadToday() {
+      // Cargar hoja de hoy automáticamente
       const today = new Date().toISOString().split("T")[0];
-      const gid = gidMap[today];
-      if (gid) {
-        document.getElementById("dateSelector").value = today;
-        loadSheet(gid);
-      } else {
-        alert("No hay hoja para la fecha de hoy (" + today + ")");
+      if (gidMap[today]) {
+        loadSheet(gidMap[today]);
+        selector.value = today;
       }
+    });
+
+  function loadSheet(gid) {
+    const url = `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/pubhtml?gid=${gid}&single=true`;
+    iframe.src = url;
+  }
+
+  selector.addEventListener("change", () => {
+    const selectedDate = selector.value;
+    if (gidMap[selectedDate]) {
+      loadSheet(gidMap[selectedDate]);
     }
+  });
 
-    loadGIDMap();
-  </script>
-
-</body>
-</html>
+  document.getElementById("todayBtn").addEventListener("click", () => {
+    const today = new Date().toISOString().split("T")[0];
+    if (gidMap[today]) {
+      selector.value = today;
+      loadSheet(gidMap[today]);
+    }
+  });
+</script>
