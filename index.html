@@ -1,85 +1,53 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>🔧 Maintenance Tracker</title>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔧 Maintenance Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f3f3f3;
-      color: #333;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
+      background: #f4f4f4;
       text-align: center;
+      padding: 30px;
     }
-
     h1 {
-      font-size: 24px;
+      font-size: 28px;
       margin-bottom: 10px;
     }
-
     p {
-      margin-bottom: 20px;
       font-size: 16px;
-      color: #555;
+      color: #444;
     }
-
-    select,
-    button {
+    select, button {
+      padding: 10px;
       font-size: 16px;
-      padding: 10px 12px;
-      margin: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      margin: 10px;
     }
-
     iframe {
-      width: 100%;
-      height: 80vh;
-      border: none;
+      width: 95%;
+      height: 600px;
+      border: 1px solid #ccc;
       margin-top: 20px;
-    }
-
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 20px;
-      }
-
-      select,
-      button {
-        width: 90%;
-        font-size: 16px;
-      }
-
-      iframe {
-        height: 70vh;
-      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔨 Maintenance Tasks</h1>
-    <p>Selecciona una fecha para ver las tareas:</p>
-    <div>
-      <select id="dateSelector">
-        <option value="">-- Cargando fechas... --</option>
-      </select>
-      <button id="todayBtn">HOY</button>
-    </div>
-    <iframe id="sheetFrame" title="Tareas de Mantenimiento"></iframe>
-  </div>
+  <h1>🔧 Maintenance Tasks </h1>
+  <p>Selecciona una fecha:</p>
+
+  <select id="dateSelector">
+    <option value="">-- Selecciona una fecha --</option>
+  </select>
+  <button id="todayBtn">HOY</button>
+
+  <iframe id="sheetFrame"></iframe>
 
   <script>
-    const spreadsheetId = "2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd";
-    const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/GIDMAP`;
+    // IMPORTANTE: Este es el ID CORRECTO del documento (no el de "publicar en la web")
+    const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
+    const gidMapSheet = "GIDMAP";
+    const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/${gidMapSheet}`;
 
     const selector = document.getElementById("dateSelector");
     const iframe = document.getElementById("sheetFrame");
@@ -88,7 +56,6 @@
     fetch(gidMapUrl)
       .then(response => response.json())
       .then(data => {
-        selector.innerHTML = ""; // limpiar opciones anteriores
         data.forEach(row => {
           if (row.FECHA && row.GID) {
             gidMap[row.FECHA] = row.GID;
@@ -99,4 +66,39 @@
           }
         });
 
-        // Cargar hoja de hoy automáticame
+        // Cargar hoja de hoy automáticamente
+        const today = new Date().toISOString().split("T")[0];
+        if (gidMap[today]) {
+          loadSheet(gidMap[today]);
+          selector.value = today;
+        }
+      })
+      .catch(error => {
+        console.error("Error al cargar GIDMAP:", error);
+        alert("No se pudo cargar la lista de fechas.");
+      });
+
+    function loadSheet(gid) {
+      const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
+      iframe.src = url;
+    }
+
+    selector.addEventListener("change", () => {
+      const selectedDate = selector.value;
+      if (gidMap[selectedDate]) {
+        loadSheet(gidMap[selectedDate]);
+      }
+    });
+
+    document.getElementById("todayBtn").addEventListener("click", () => {
+      const today = new Date().toISOString().split("T")[0];
+      if (gidMap[today]) {
+        selector.value = today;
+        loadSheet(gidMap[today]);
+      } else {
+        alert("No hay hoja para hoy.");
+      }
+    });
+  </script>
+</body>
+</html>
