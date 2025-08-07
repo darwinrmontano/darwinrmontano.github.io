@@ -19,7 +19,7 @@
       font-size: 16px;
       color: #444;
     }
-    input[type="date"], button {
+    input[type="date"] {
       padding: 10px;
       font-size: 16px;
       margin: 10px;
@@ -37,7 +37,6 @@
   <p>Selecciona una fecha:</p>
 
   <input type="date" id="datePicker" />
-  <button id="todayBtn">HOY</button>
 
   <iframe id="sheetFrame"></iframe>
 
@@ -61,7 +60,7 @@
           }
         });
 
-        // Intenta cargar hoja de hoy al abrir
+        // Cargar hoja de hoy al abrir
         const today = new Date().toISOString().split("T")[0];
         dateInput.value = today;
         if (gidMap[today]) {
@@ -80,24 +79,13 @@
       iframe.src = url;
     }
 
-    // Cargar hoja al cambiar fecha en calendario
+    // Cargar hoja al seleccionar fecha
     dateInput.addEventListener("change", () => {
       const selectedDate = dateInput.value;
       if (gidMap[selectedDate]) {
         loadSheet(gidMap[selectedDate]);
       } else {
         alert("No hay hoja para la fecha seleccionada.");
-      }
-    });
-
-    // Botón HOY
-    document.getElementById("todayBtn").addEventListener("click", () => {
-      const today = new Date().toISOString().split("T")[0];
-      dateInput.value = today;
-      if (gidMap[today]) {
-        loadSheet(gidMap[today]);
-      } else {
-        alert("No hay hoja para hoy.");
       }
     });
   </script>
