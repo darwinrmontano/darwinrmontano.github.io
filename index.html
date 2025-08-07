@@ -19,7 +19,7 @@
       font-size: 16px;
       color: #444;
     }
-    select, button {
+    input[type="date"], button {
       padding: 10px;
       font-size: 16px;
       margin: 10px;
@@ -33,12 +33,10 @@
   </style>
 </head>
 <body>
-  <h1>🔧 Maintenance Tasks </h1>
+  <h1>🔧 Maintenance Tasks</h1>
   <p>Selecciona una fecha:</p>
 
-  <select id="dateSelector">
-    <option value="">-- Selecciona una fecha --</option>
-  </select>
+  <input type="date" id="datePicker" />
   <button id="todayBtn">HOY</button>
 
   <iframe id="sheetFrame"></iframe>
@@ -48,7 +46,7 @@
     const gidMapSheet = "GIDMAP";
     const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/${gidMapSheet}`;
 
-    const selector = document.getElementById("dateSelector");
+    const dateInput = document.getElementById("datePicker");
     const iframe = document.getElementById("sheetFrame");
     const gidMap = {};
 
@@ -56,22 +54,20 @@
       .then(response => response.json())
       .then(data => {
         data.forEach(row => {
-          const fecha = row.FECHA?.trim(); // ✅ Limpiar espacios por si acaso
+          const fecha = row.FECHA?.trim();
           const gid = row.GID?.trim();
           if (fecha && gid) {
             gidMap[fecha] = gid;
-            const option = document.createElement("option");
-            option.value = fecha;
-            option.textContent = fecha;
-            selector.appendChild(option);
           }
         });
 
-        // Cargar hoja de hoy automáticamente
+        // Intenta cargar hoja de hoy al abrir
         const today = new Date().toISOString().split("T")[0];
+        dateInput.value = today;
         if (gidMap[today]) {
           loadSheet(gidMap[today]);
-          selector.value = today;
+        } else {
+          alert("No hay hoja para hoy.");
         }
       })
       .catch(error => {
@@ -84,17 +80,21 @@
       iframe.src = url;
     }
 
-    selector.addEventListener("change", () => {
-      const selectedDate = selector.value;
+    // Cargar hoja al cambiar fecha en calendario
+    dateInput.addEventListener("change", () => {
+      const selectedDate = dateInput.value;
       if (gidMap[selectedDate]) {
         loadSheet(gidMap[selectedDate]);
+      } else {
+        alert("No hay hoja para la fecha seleccionada.");
       }
     });
 
+    // Botón HOY
     document.getElementById("todayBtn").addEventListener("click", () => {
       const today = new Date().toISOString().split("T")[0];
+      dateInput.value = today;
       if (gidMap[today]) {
-        selector.value = today;
         loadSheet(gidMap[today]);
       } else {
         alert("No hay hoja para hoy.");
