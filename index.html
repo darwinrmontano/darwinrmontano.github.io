@@ -49,6 +49,13 @@
     const iframe = document.getElementById("sheetFrame");
     const gidMap = {};
 
+    // 🛠 Función que devuelve la fecha local en formato yyyy-mm-dd
+    function getLocalTodayDate() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Corrige la diferencia de zona horaria
+      return now.toISOString().split("T")[0];
+    }
+
     fetch(gidMapUrl)
       .then(response => response.json())
       .then(data => {
@@ -60,8 +67,7 @@
           }
         });
 
-        // Cargar hoja de hoy al abrir
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalTodayDate();
         dateInput.value = today;
         if (gidMap[today]) {
           loadSheet(gidMap[today]);
@@ -79,7 +85,6 @@
       iframe.src = url;
     }
 
-    // Cargar hoja al seleccionar fecha
     dateInput.addEventListener("change", () => {
       const selectedDate = dateInput.value;
       if (gidMap[selectedDate]) {
