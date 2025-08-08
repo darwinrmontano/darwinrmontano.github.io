@@ -2,100 +2,110 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>📋 Tareas del día</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📋 Tareas del día</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 10px;
+      background: #f4f4f4;
       margin: 0;
-      background-color: #f2f2f2;
+      padding: 20px;
+      color: #333;
     }
 
-    h1, p {
+    h1, h2 {
       text-align: center;
-      margin: 10px 0;
+      margin: 0;
     }
 
-    select {
-      display: block;
-      margin: 10px auto 20px;
-      font-size: 16px;
-      padding: 8px 12px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      max-width: 300px;
-      width: 90%;
+    .fecha {
+      text-align: center;
+      margin: 10px 0 20px;
+      font-size: 18px;
     }
 
     iframe {
       width: 100%;
       height: 600px;
-      border: none;
+      border: 1px solid #ccc;
       border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      display: block;
+      margin: auto;
     }
 
-    @media (max-width: 600px) {
-      iframe {
-        height: 500px;
-      }
+    .selector {
+      text-align: center;
+      margin: 10px auto 30px;
+    }
+
+    select {
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #aaa;
     }
   </style>
 </head>
 <body>
-  <h1>📅 Tareas del día</h1>
-  <p id="hoy"></p>
+  <h1>📋 Tareas del día</h1>
+  <div class="fecha" id="fechaHoy"></div>
 
-  <select id="selectorFechas" onchange="cambiarFecha(this.value)">
-    <option value="">📆 Selecciona otra fecha</option>
-  </select>
+  <div class="selector">
+    <label for="fechaSelect">📅 Selecciona otra fecha</label>
+    <select id="fechaSelect"></select>
+  </div>
 
-  <iframe id="hoja" src="" allowfullscreen></iframe>
+  <iframe id="hojaFrame" src="" allowfullscreen></iframe>
 
   <script>
-    const publicLinkBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
-
-    const gidmap = {
+    const hojaBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
+    
+    const gidMap = {
       "2025-08-04": "0",
-      "2025-08-05": "1691956985",
-      "2025-08-06": "1092112076",
-      "2025-08-07": "1529940656",
-      "2025-08-08": "1948801769"
-      // Agrega aquí nuevas fechas cuando se creen
+      "2025-08-05": "255973809",
+      "2025-08-06": "1494250371",
+      "2025-08-07": "769048570",
+      "2025-08-08": "1654370385"
+      // Agrega más fechas y GIDs aquí según se vayan creando
     };
 
-    // Obtener fecha actual en formato yyyy-mm-dd
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
-    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    const fechaActual = `${yyyy}-${mm}-${dd}`;
+    const fechaMostrar = `${mm}/${dd}/${String(yyyy).slice(-2)}`;
+    
+    document.getElementById("fechaHoy").textContent = "Hoy es: " + fechaMostrar;
 
-    document.getElementById("hoy").textContent = "Hoy es: " + (mm + "/" + dd + "/" + String(yyyy).slice(-2));
+    const select = document.getElementById("fechaSelect");
+
+    // Llenar selector con fechas
+    Object.keys(gidMap).sort().reverse().forEach(fecha => {
+      const option = document.createElement("option");
+      option.value = fecha;
+      option.textContent = fecha;
+      if (fecha === fechaActual) option.selected = true;
+      select.appendChild(option);
+    });
 
     // Mostrar hoja del día
-    const gid = gidmap[fechaHoy];
-    if (gid) {
-      document.getElementById("hoja").src = publicLinkBase + gid + "&single=true&widget=true&headers=false";
-    } else {
-      document.getElementById("hoja").outerHTML = "<p style='text-align:center; color:red;'>⚠️ Aún no hay hoja para hoy (" + fechaHoy + ")</p>";
-    }
-
-    // Llenar selector de fechas
-    const selector = document.getElementById("selectorFechas");
-    for (const fecha in gidmap) {
-      const option = document.createElement("option");
-      option.value = gidmap[fecha];
-      option.text = fecha;
-      selector.appendChild(option);
-    }
-
-    function cambiarFecha(gid) {
-      if (gid) {
-        document.getElementById("hoja").src = publicLinkBase + gid + "&single=true&widget=true&headers=false";
+    function mostrarHoja(fecha) {
+      const gid = gidMap[fecha];
+      if (!gid) {
+        document.getElementById("hojaFrame").src = "";
+        alert("❌ No se encontró la hoja para esta fecha.");
+        return;
       }
+      const url = hojaBase + gid + "&single=true&widget=true&headers=false";
+      document.getElementById("hojaFrame").src = url;
     }
+
+    select.addEventListener("change", () => {
+      mostrarHoja(select.value);
+    });
+
+    mostrarHoja(select.value); // Mostrar hoja actual al cargar
   </script>
 </body>
 </html>
