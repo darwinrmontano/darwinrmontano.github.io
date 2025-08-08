@@ -1,98 +1,101 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🔧 Maintenance Tracker</title>
+  <meta charset="UTF-8">
+  <title>📋 Tareas del día</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      text-align: center;
-      padding: 30px;
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 16px;
-      color: #444;
-    }
-    input[type="date"] {
       padding: 10px;
-      font-size: 16px;
-      margin: 10px;
+      margin: 0;
+      background-color: #f2f2f2;
     }
-    iframe {
-      width: 95%;
-      height: 600px;
+
+    h1, p {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    select {
+      display: block;
+      margin: 10px auto 20px;
+      font-size: 16px;
+      padding: 8px 12px;
+      border-radius: 5px;
       border: 1px solid #ccc;
-      margin-top: 20px;
+      max-width: 300px;
+      width: 90%;
+    }
+
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 600px) {
+      iframe {
+        height: 500px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>🔧 Maintenance Team</h1>
-  <p>Select a date:</p>
+  <h1>📅 Tareas del día</h1>
+  <p id="hoy"></p>
 
-  <input type="date" id="datePicker" />
+  <select id="selectorFechas" onchange="cambiarFecha(this.value)">
+    <option value="">📆 Selecciona otra fecha</option>
+  </select>
 
-  <iframe id="sheetFrame"></iframe>
+  <iframe id="hoja" src="" allowfullscreen></iframe>
 
   <script>
-    const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
-    const gidMapSheet = "GIDMAP";
-    const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/${gidMapSheet}`;
+    const publicLinkBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=";
 
-    const dateInput = document.getElementById("datePicker");
-    const iframe = document.getElementById("sheetFrame");
-    const gidMap = {};
+    const gidmap = {
+      "2025-08-04": "0",
+      "2025-08-05": "1691956985",
+      "2025-08-06": "1092112076",
+      "2025-08-07": "1529940656",
+      "2025-08-08": "1948801769"
+      // Agrega aquí nuevas fechas cuando se creen
+    };
 
-    // 🛠 Función que devuelve la fecha local en formato yyyy-mm-dd
-    function getLocalTodayDate() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Corrige la diferencia de zona horaria
-      return now.toISOString().split("T")[0];
+    // Obtener fecha actual en formato yyyy-mm-dd
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+
+    document.getElementById("hoy").textContent = "Hoy es: " + (mm + "/" + dd + "/" + String(yyyy).slice(-2));
+
+    // Mostrar hoja del día
+    const gid = gidmap[fechaHoy];
+    if (gid) {
+      document.getElementById("hoja").src = publicLinkBase + gid + "&single=true&widget=true&headers=false";
+    } else {
+      document.getElementById("hoja").outerHTML = "<p style='text-align:center; color:red;'>⚠️ Aún no hay hoja para hoy (" + fechaHoy + ")</p>";
     }
 
-    fetch(gidMapUrl)
-      .then(response => response.json())
-      .then(data => {
-        data.forEach(row => {
-          const fecha = row.FECHA?.trim();
-          const gid = row.GID?.trim();
-          if (fecha && gid) {
-            gidMap[fecha] = gid;
-          }
-        });
-
-        const today = getLocalTodayDate();
-        dateInput.value = today;
-        if (gidMap[today]) {
-          loadSheet(gidMap[today]);
-        } else {
-          alert("No hay hoja para hoy.");
-        }
-      })
-      .catch(error => {
-        console.error("Error al cargar GIDMAP:", error);
-        alert("No se pudo cargar la lista de fechas.");
-      });
-
-    function loadSheet(gid) {
-      const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-      iframe.src = url;
+    // Llenar selector de fechas
+    const selector = document.getElementById("selectorFechas");
+    for (const fecha in gidmap) {
+      const option = document.createElement("option");
+      option.value = gidmap[fecha];
+      option.text = fecha;
+      selector.appendChild(option);
     }
 
-    dateInput.addEventListener("change", () => {
-      const selectedDate = dateInput.value;
-      if (gidMap[selectedDate]) {
-        loadSheet(gidMap[selectedDate]);
-      } else {
-        alert("No hay hoja para la fecha seleccionada.");
+    function cambiarFecha(gid) {
+      if (gid) {
+        document.getElementById("hoja").src = publicLinkBase + gid + "&single=true&widget=true&headers=false";
       }
-    });
+    }
   </script>
 </body>
 </html>
