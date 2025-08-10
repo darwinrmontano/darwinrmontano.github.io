@@ -30,6 +30,26 @@
       border: 1px solid #ccc;
       margin-top: 20px;
     }
+
+    /* MODO PANTALLA COMPLETA (kiosco): muestra solo el iframe */
+    body.kiosk {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #000;
+    }
+    body.kiosk h1,
+    body.kiosk p,
+    body.kiosk #datePicker {
+      display: none !important;
+    }
+    body.kiosk #sheetFrame {
+      position: fixed;
+      inset: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      border: none !important;
+      margin: 0 !important;
+    }
   </style>
 </head>
 <body>
@@ -103,6 +123,11 @@
         iframe.src = url.toString();
       }
     }, REFRESH_MS);
+
+    // Activa el modo pantalla completa al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('kiosk');
+    });
   </script>
 </body>
 </html>
