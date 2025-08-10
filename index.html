@@ -93,6 +93,16 @@
         alert("No hay hoja para la fecha seleccionada.");
       }
     });
+
+    // 🔄 Auto-refresh del iframe cada 60 segundos
+    const REFRESH_MS = 60000; // 60,000 ms = 60 s
+    setInterval(() => {
+      if (iframe.src) {
+        const url = new URL(iframe.src);
+        url.searchParams.set("_r", Date.now()); // evita caché
+        iframe.src = url.toString();
+      }
+    }, REFRESH_MS);
   </script>
 </body>
 </html>
