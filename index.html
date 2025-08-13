@@ -6,55 +6,57 @@
   <title>🔧 Maintenance Tracker</title>
   <style>
     :root { --card:#fff; --border:#ddd; --muted:#666; }
-
-    /* Márgenes laterales un poco más anchos */
+    
+    /* Márgenes más amplios */
     body {
       font-family: Arial, sans-serif;
       background:#f4f4f4;
       text-align:center;
-      padding:24px 40px; /* antes: 24px */
+      padding:24px 40px;
     }
-    /* En pantallas grandes, aún más margen lateral */
     @media (min-width: 1024px) {
       body { padding:28px 64px; }
     }
 
     h1 { font-size:28px; margin:0 0 8px; }
-    p  { font-size:16px; color:#444; margin:0 0 8px; } /* un poco más cerca del date */
+    p { font-size:16px; color:#444; margin:0 0 4px; } /* menos margen abajo */
 
     .bar {
       display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
-      margin:10px 0 4px; /* menos espacio debajo para acercar el date */
+      margin:14px 0 6px;
     }
-    button{
+    button {
       background:#fff; border:1px solid var(--border); padding:10px 14px;
       border-radius:10px; cursor:pointer; font-size:14px;
       box-shadow:0 1px 0 rgba(0,0,0,.02);
     }
-    button:hover{ background:#fafafa; }
+    button:hover { background:#fafafa; }
 
-    /* SUBIR el cuadro de fecha (menos margen arriba) */
-    input[type="date"]{
+    /* Cuadro de fecha pegado al texto */
+    input[type="date"] {
       padding:10px; font-size:16px;
-      margin:2px 0 10px; /* antes: 10px; ahora queda más pegado arriba */
+      margin:0 0 10px; /* margen superior eliminado */
       border-radius:10px; border:1px solid var(--border);
     }
 
-    /* Contenedor más angosto para dar sensación de mayores márgenes */
-    .card{
-      width:min(1000px,88vw); /* antes: min(1100px,95vw) */
-      margin:0 auto; background:var(--card);
-      border:1px solid var(--border); border-radius:12px; overflow:hidden;
+    /* Contenedor más angosto */
+    .card {
+      width:min(1000px,88vw);
+      margin:0 auto;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      overflow:hidden;
     }
-    iframe{ width:100%; height:600px; border:0; display:block; }
+    iframe { width:100%; height:600px; border:0; display:block; }
 
-    /* Tabla renderizada (pending/suggested) */
-    #tableWrap{ display:none; text-align:left; }
-    .head{ padding:10px 14px; font-weight:700; border-bottom:1px solid var(--border); background:#fafafa; }
-    table{ width:100%; border-collapse:collapse; font-size:14px; }
-    th,td{ padding:10px 12px; border-bottom:1px solid #eee; vertical-align:top; }
-    th{ background:#fafafa; text-align:left; }
-    .muted{ color:var(--muted); font-size:12px; padding:10px 14px; }
+    /* Tabla renderizada */
+    #tableWrap { display:none; text-align:left; }
+    .head { padding:10px 14px; font-weight:700; border-bottom:1px solid var(--border); background:#fafafa; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { padding:10px 12px; border-bottom:1px solid #eee; vertical-align:top; }
+    th { background:#fafafa; text-align:left; }
+    .muted { color:var(--muted); font-size:12px; padding:10px 14px; }
   </style>
 </head>
 <body>
@@ -70,16 +72,16 @@
     <button id="btnAdd">Add new 🆕</button>
   </div>
 
-  <!-- Selector de fecha (para ver hojas diarias) -->
+  <!-- Selector de fecha -->
   <input type="date" id="datePicker" />
 
-  <!-- Contenedor para iframe (hojas diarias) -->
+  <!-- Contenedor iframe -->
   <div class="card" id="iframeCard">
     <iframe id="sheetFrame"></iframe>
     <div class="muted" id="dailyHint"></div>
   </div>
 
-  <!-- Contenedor para tablas (pending/suggested) -->
+  <!-- Contenedor tablas -->
   <div class="card" id="tableWrap">
     <div class="head" id="sheetTitle"></div>
     <div style="overflow:auto;">
@@ -89,13 +91,11 @@
   </div>
 
   <script>
-    /* ===== Config ===== */
     const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbydyX7AkI6i_D_rAV2Wb1TOWIajgxKWdOBPq_rO0aUrOMfcUoMYgr59UG0_etspchP0DQ/exec"
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbydyX7AkI6i_D_rAV2Wb1TOWIajgxKWdOBPq_rO0aUrOMfcUoMYgr59UG0_etspchP0DQ/exec";
     const gidMapSheet = "GIDMAP";
     const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/${gidMapSheet}`;
 
-    /* ===== DOM ===== */
     const dateInput = document.getElementById("datePicker");
     const iframe = document.getElementById("sheetFrame");
     const iframeCard = document.getElementById("iframeCard");
@@ -104,17 +104,14 @@
     const tableEl = document.getElementById("tbl");
     const dailyHint = document.getElementById("dailyHint");
 
-    /* ===== Estado ===== */
-    const gidMap = {}; // FECHA -> gid
+    const gidMap = {};
 
-    // Fecha local yyyy-mm-dd
     function getLocalTodayDate() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().split("T")[0];
     }
 
-    /* ===== Carga GIDMAP y arranque con hoy ===== */
     fetch(gidMapUrl)
       .then(r => r.json())
       .then(data => {
@@ -136,7 +133,6 @@
         alert("No se pudo cargar la lista de fechas.");
       });
 
-    /* ===== Mostrar hoja diaria (iframe) ===== */
     function showDailyByGid(gid) {
       tableWrap.style.display = "none";
       iframeCard.style.display = "block";
@@ -151,22 +147,19 @@
       else alert("No hay hoja para la fecha seleccionada.");
     });
 
-    const REFRESH_MS = 60000;
     setInterval(() => {
       if (iframeCard.style.display !== "none" && iframe.src) {
         const url = new URL(iframe.src);
         url.searchParams.set("_r", Date.now());
         iframe.src = url.toString();
       }
-    }, REFRESH_MS);
+    }, 60000);
 
-    /* ===== Botones públicos: Pending / Suggested ===== */
     document.getElementById("btnPending").onclick = () =>
       showNamedSheet("Pending work", ["DATE","JOB NAME","TASK","STATUS","NOTE"]);
     document.getElementById("btnSuggested").onclick = () =>
       showNamedSheet("suggested jobs", ["JOB NAME","TASK","NOTE"]);
 
-    /* ===== Botones privados (clave: hola) ===== */
     document.getElementById("btnEdit").onclick = () => gated(() => {
       window.open(`${WEBAPP_URL}?page=editar`, "_blank");
     });
@@ -186,7 +179,6 @@
       }
     }
 
-    /* ===== Render de hojas por nombre (sin GID) usando gviz ===== */
     async function fetchSheetByName(sheetName) {
       const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?`;
       const url  = `${base}tqx=out:json&sheet=${encodeURIComponent(sheetName)}&tq=${encodeURIComponent("select *")}`;
