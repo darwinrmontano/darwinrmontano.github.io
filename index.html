@@ -6,29 +6,55 @@
   <title>🔧 Maintenance Tracker</title>
   <style>
     :root { --card:#fff; --border:#ddd; --muted:#666; }
-    body { font-family: Arial, sans-serif; background:#f4f4f4; text-align:center; padding:24px; }
-    h1 { font-size:28px; margin:0 0 8px; }
-    p { font-size:16px; color:#444; margin:0 0 12px; }
 
-    .bar { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:14px 0 6px; }
-    button {
+    /* Márgenes laterales un poco más anchos */
+    body {
+      font-family: Arial, sans-serif;
+      background:#f4f4f4;
+      text-align:center;
+      padding:24px 40px; /* antes: 24px */
+    }
+    /* En pantallas grandes, aún más margen lateral */
+    @media (min-width: 1024px) {
+      body { padding:28px 64px; }
+    }
+
+    h1 { font-size:28px; margin:0 0 8px; }
+    p  { font-size:16px; color:#444; margin:0 0 8px; } /* un poco más cerca del date */
+
+    .bar {
+      display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+      margin:10px 0 4px; /* menos espacio debajo para acercar el date */
+    }
+    button{
       background:#fff; border:1px solid var(--border); padding:10px 14px;
       border-radius:10px; cursor:pointer; font-size:14px;
       box-shadow:0 1px 0 rgba(0,0,0,.02);
     }
-    button:hover { background:#fafafa; }
-    input[type="date"] { padding:10px; font-size:16px; margin:10px; border-radius:10px; border:1px solid var(--border); }
+    button:hover{ background:#fafafa; }
 
-    .card { width:min(1100px,95vw); margin:0 auto; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-    iframe { width:100%; height:600px; border:0; display:block; }
+    /* SUBIR el cuadro de fecha (menos margen arriba) */
+    input[type="date"]{
+      padding:10px; font-size:16px;
+      margin:2px 0 10px; /* antes: 10px; ahora queda más pegado arriba */
+      border-radius:10px; border:1px solid var(--border);
+    }
+
+    /* Contenedor más angosto para dar sensación de mayores márgenes */
+    .card{
+      width:min(1000px,88vw); /* antes: min(1100px,95vw) */
+      margin:0 auto; background:var(--card);
+      border:1px solid var(--border); border-radius:12px; overflow:hidden;
+    }
+    iframe{ width:100%; height:600px; border:0; display:block; }
 
     /* Tabla renderizada (pending/suggested) */
-    #tableWrap { display:none; text-align:left; }
-    .head { padding:10px 14px; font-weight:700; border-bottom:1px solid var(--border); background:#fafafa; }
-    table { width:100%; border-collapse:collapse; font-size:14px; }
-    th, td { padding:10px 12px; border-bottom:1px solid #eee; vertical-align:top; }
-    th { background:#fafafa; text-align:left; }
-    .muted { color:var(--muted); font-size:12px; padding:10px 14px; }
+    #tableWrap{ display:none; text-align:left; }
+    .head{ padding:10px 14px; font-weight:700; border-bottom:1px solid var(--border); background:#fafafa; }
+    table{ width:100%; border-collapse:collapse; font-size:14px; }
+    th,td{ padding:10px 12px; border-bottom:1px solid #eee; vertical-align:top; }
+    th{ background:#fafafa; text-align:left; }
+    .muted{ color:var(--muted); font-size:12px; padding:10px 14px; }
   </style>
 </head>
 <body>
@@ -64,7 +90,7 @@
 
   <script>
     /* ===== Config ===== */
-    const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY"; // tu Sheet (ya lo tenías)
+    const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbydyX7AkI6i_D_rAV2Wb1TOWIajgxKWdOBPq_rO0aUrOMfcUoMYgr59UG0_etspchP0DQ/exec"
     const gidMapSheet = "GIDMAP";
     const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/${gidMapSheet}`;
@@ -112,10 +138,8 @@
 
     /* ===== Mostrar hoja diaria (iframe) ===== */
     function showDailyByGid(gid) {
-      // Muestra el iframe y oculta la tabla
       tableWrap.style.display = "none";
       iframeCard.style.display = "block";
-
       const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
       iframe.src = url;
       dailyHint.textContent = "Mostrando la hoja diaria publicada. Se actualiza cada 60s.";
@@ -127,7 +151,6 @@
       else alert("No hay hoja para la fecha seleccionada.");
     });
 
-    // Auto-refresh del iframe cada 60 segundos
     const REFRESH_MS = 60000;
     setInterval(() => {
       if (iframeCard.style.display !== "none" && iframe.src) {
@@ -172,11 +195,9 @@
       const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
       const table = json.table || {cols:[], rows:[]};
       const rows = table.rows.map(r => (r.c||[]).map(c => c ? c.v : ""));
-
-      // Normalizo si la primera fila es el título (A1) y la segunda son encabezados
       let start = 0;
       if (rows.length && String(rows[0][0]).toLowerCase().includes(sheetName.split(" ")[0].toLowerCase())) {
-        start = 1; // saltamos título
+        start = 1;
       }
       const headers = rows[start] || [];
       const data = rows.slice(start + 1);
@@ -208,16 +229,12 @@
     }
 
     async function showNamedSheet(sheetName, expectedHeaders) {
-      // Oculto iframe y muestro la tarjeta con tabla
       iframeCard.style.display = "none";
       tableWrap.style.display = "block";
       titleEl.textContent = `${sheetName} — loading…`;
       tableEl.innerHTML = "";
-
       try {
         const {headers, data} = await fetchSheetByName(sheetName);
-        // Si la hoja usa A1 como título y A2 como encabezados, headers ya viene correcto.
-        // Si no, usamos expectedHeaders para que la tabla salga bonita.
         const hdr = (headers && headers.length >= expectedHeaders.length) ? headers : expectedHeaders;
         renderTable({headers: hdr, data}, sheetName);
       } catch (err) {
