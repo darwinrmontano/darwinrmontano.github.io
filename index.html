@@ -58,6 +58,16 @@
     th { background:#fafafa; text-align:left; }
     .muted { color:var(--muted); font-size:12px; padding:10px 14px; }
 
+    /* Badges de estado */
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:3px 8px; border:1px solid var(--border); border-radius:999px;
+      font-size:12px; line-height:1;
+      background:linear-gradient(180deg,#fff,#f7f7f7);
+    }
+    .badge.ok   { color:#16a34a; box-shadow: inset 0 0 0 1px rgba(22,163,74,.12); }
+    .badge.wait { color:#06b6d4; box-shadow: inset 0 0 0 1px rgba(6,182,212,.12); }
+
     /* ============================
        DARK MODE (tipo Linux)
        ============================ */
@@ -109,6 +119,12 @@
 
       .muted { color: var(--muted); }
       iframe { background: #0f1318; }
+
+      .badge{
+        background: linear-gradient(180deg, #171b22, #12161c);
+      }
+      .badge.ok   { color:#4ade80; }
+      .badge.wait { color:#00d1ff; }
     }
 
     /* Fuente opcional estilo terminal */
@@ -216,8 +232,46 @@
       return { headers, data };
     }
 
+    /* ===== Helpers de normalización y badges ===== */
+    function toStatusHtml(v) {
+      const s = String(v ?? "").trim().toLowerCase();
+      const isDone =
+        s === "1" || s === "true" || s === "yes" || s === "y" ||
+        /done|listo|hecho|completo|completed|ok|✓|✔|✅/.test(s);
+      const isPending =
+        s === "" || s === "0" || s === "false" || /pend|todo|wait|🕓/.test(s);
+
+      if (isDone)   return { __html: `<span class="badge ok">✅ Done</span>` };
+      if (isPending) return { __html: `<span class="badge wait">🕓 Pending</span>` };
+      // otro texto: mostrarlo tal cual
+      return { __html: `<span class="badge">${escapeHtml(v)}</span>` };
+    }
+
+    // Quita DATE y fija encabezados JOB/TASK/STATUS/NOTE
+    function mapDailyToDisplay(headers, data) {
+      const lc = (headers || []).map(h => String(h || "").toLowerCase().trim());
+      const find = (re, fallback) => {
+        const i = lc.findIndex(h => re.test(h));
+        return i >= 0 ? i : fallback;
+      };
+      // orden típico en tu hoja: [DATE, JOB, TASK, STATUS, NOTE]
+      const iJob    = find(/^(job|job name|work|lugar|place)/, 1);
+      const iTask   = find(/^(task|tarea|desc|description)/, 2);
+      const iStatus = find(/^(status|estado)/, 3);
+      const iNote   = find(/^(note|notes|nota)/, 4);
+
+      const outHeaders = ["JOB NAME","TASK","STATUS","NOTE"];
+      const outData = data.map(r => [
+        r[iJob] ?? "",
+        r[iTask] ?? "",
+        toStatusHtml(r[iStatus]).__html ? toStatusHtml(r[iStatus]) : (r[iStatus] ?? ""),
+        r[iNote] ?? ""
+      ]);
+      return { headers: outHeaders, data: outData };
+    }
+
     /* =============================
-       REEMPLAZADO: vista diaria sin iframe
+       Vista diaria sin iframe
        ============================= */
     async function showDailyByGid(gid) {
       // Ocultamos iframe y usamos la tabla nativa (oscura)
@@ -228,15 +282,12 @@
 
       try {
         const { headers, data } = await fetchSheetByGid(gid);
-        // Fallback de encabezados por si vienen vacíos
-        const fallbackHeaders = ["DATE","JOB NAME","TASK","STATUS","NOTE"];
-        const hdr = (headers && headers.length >= 3) ? headers : fallbackHeaders;
-
-        renderTable({ headers: hdr, data }, `PLANTILLA : ${dateInput.value}`);
+        const normalized = mapDailyToDisplay(headers, data); // 🔹 quita DATE y añade badges
+        renderTable(normalized, `PLANTILLA : ${dateInput.value}`);
         dailyHint.textContent = "Vista nativa (sin iframe). Se adapta al modo oscuro.";
       } catch (err) {
         console.error(err);
-        // Si falla, mostramos el iframe publicado como respaldo
+        // Respaldo usando iframe si algo falla
         tableWrap.style.display = "none";
         iframeCard.style.display = "block";
         const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
@@ -301,12 +352,18 @@
       return { headers, data };
     }
 
+    // Render permite celdas con HTML seguro: {__html:"..."} para badges
     function renderTable({headers, data}, title) {
+      const esc = (v) => String(v ?? "").replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
       tableEl.innerHTML = "";
-      const thead = `<thead><tr>${headers.map(h=>`<th>${escapeHtml(h ?? "")}</th>`).join("")}</tr></thead>`;
+      const thead = `<thead><tr>${headers.map(h=>`<th>${esc(h ?? "")}</th>`).join("")}</tr></thead>`;
       const tbody = `<tbody>${
         data.map(row => `<tr>${
-          headers.map((_,i)=>`<td>${escapeHtml(formatCell(row[i]))}</td>`).join("")
+          headers.map((_,i)=>{
+            const cell = row[i];
+            if (cell && typeof cell === "object" && "__html" in cell) return `<td>${cell.__html}</td>`;
+            return `<td>${esc(formatCell(cell))}</td>`;
+          }).join("")
         }</tr>`).join("")
       }</tbody>`;
       tableEl.innerHTML = thead + tbody;
