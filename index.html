@@ -131,7 +131,7 @@
   <!-- Selector de fecha -->
   <input type="date" id="datePicker" />
 
-  <!-- Contenedor iframe -->
+  <!-- Contenedor iframe (se usará solo para otras vistas si lo necesitas) -->
   <div class="card" id="iframeCard">
     <iframe id="sheetFrame"></iframe>
     <div class="muted" id="dailyHint"></div>
@@ -189,12 +189,60 @@
         alert("No se pudo cargar la lista de fechas.");
       });
 
-    function showDailyByGid(gid) {
-      tableWrap.style.display = "none";
-      iframeCard.style.display = "block";
-      const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true`;
-      iframe.src = url;
-      dailyHint.textContent = "Mostrando la hoja diaria publicada. Se actualiza cada 60s.";
+    /* ===============================
+       NUEVO: Leer hoja por GID (gviz)
+       =============================== */
+    async function fetchSheetByGid(gid) {
+      const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?`;
+      const url  = `${base}tqx=out:json&gid=${encodeURIComponent(gid)}&tq=${encodeURIComponent("select *")}`;
+      const res  = await fetch(url);
+      const txt  = await res.text();
+      const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+      const table = json.table || { cols: [], rows: [] };
+
+      // a filas planas
+      const rows = table.rows.map(r => (r.c || []).map(c => c ? c.v : ""));
+
+      // A veces la primera fila es un título "PLANTILLA : 2025-08-20"
+      let start = 0;
+      const looksLikeHeader = (arr) => {
+        const joined = (arr || []).join(" ").toLowerCase();
+        return /job|task|status|note|fecha|date/.test(joined);
+      };
+      if (rows.length && !looksLikeHeader(rows[0])) start = 1;
+
+      const headers = rows[start] || [];
+      const data    = rows.slice(start + 1);
+      return { headers, data };
+    }
+
+    /* =============================
+       REEMPLAZADO: vista diaria sin iframe
+       ============================= */
+    async function showDailyByGid(gid) {
+      // Ocultamos iframe y usamos la tabla nativa (oscura)
+      iframeCard.style.display = "none";
+      tableWrap.style.display  = "block";
+      titleEl.textContent      = `PLANTILLA : ${dateInput.value} — loading…`;
+      tableEl.innerHTML        = "";
+
+      try {
+        const { headers, data } = await fetchSheetByGid(gid);
+        // Fallback de encabezados por si vienen vacíos
+        const fallbackHeaders = ["DATE","JOB NAME","TASK","STATUS","NOTE"];
+        const hdr = (headers && headers.length >= 3) ? headers : fallbackHeaders;
+
+        renderTable({ headers: hdr, data }, `PLANTILLA : ${dateInput.value}`);
+        dailyHint.textContent = "Vista nativa (sin iframe). Se adapta al modo oscuro.";
+      } catch (err) {
+        console.error(err);
+        // Si falla, mostramos el iframe publicado como respaldo
+        tableWrap.style.display = "none";
+        iframeCard.style.display = "block";
+        const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
+        iframe.src = url;
+        dailyHint.textContent = "Respaldo con iframe de Google Sheets.";
+      }
     }
 
     dateInput.addEventListener("change", () => {
@@ -203,6 +251,7 @@
       else alert("No hay hoja para la fecha seleccionada.");
     });
 
+    // Este refresco solo actúa si está visible el iframe (respaldo)
     setInterval(() => {
       if (iframeCard.style.display !== "none" && iframe.src) {
         const url = new URL(iframe.src);
