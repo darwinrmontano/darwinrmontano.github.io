@@ -57,6 +57,62 @@
     th, td { padding:10px 12px; border-bottom:1px solid #eee; vertical-align:top; }
     th { background:#fafafa; text-align:left; }
     .muted { color:var(--muted); font-size:12px; padding:10px 14px; }
+
+    /* ============================
+       DARK MODE (tipo Linux)
+       ============================ */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --card: #111418;
+        --border: #232a32;
+        --muted: #9aa3ad;
+      }
+
+      html, body {
+        background:
+          radial-gradient(900px 600px at 10% -10%, rgba(0,209,255,.12), transparent 60%),
+          radial-gradient(900px 600px at 110% 10%, rgba(34,197,94,.10), transparent 55%),
+          #0c0f12 !important;
+        color: #e6e8eb;
+        font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .card {
+        background: linear-gradient(180deg, var(--card), #161a20);
+        border-color: var(--border);
+        box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      }
+
+      .head,
+      th {
+        background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+        color: #cbd5e1;
+      }
+
+      table { color: #e6e8eb; }
+      th, td { border-bottom: 1px dashed var(--border); }
+      tr:hover td { background: rgba(0,209,255,.05); }
+
+      button {
+        background: linear-gradient(180deg, #171b22, #12161c);
+        color: #e6e8eb;
+        border-color: var(--border);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 4px 12px rgba(0,0,0,.25);
+      }
+      button:hover { outline: 1px solid #00d1ff; }
+
+      input[type="date"] {
+        background: #101419;
+        color: #e6e8eb;
+        border-color: var(--border);
+      }
+
+      .muted { color: var(--muted); }
+      iframe { background: #0f1318; }
+    }
+
+    /* Fuente opcional estilo terminal */
+    @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap");
   </style>
 </head>
 <body>
@@ -226,7 +282,6 @@
       titleEl.textContent = `${sheetName} — loading…`;
       tableEl.innerHTML = "";
       try {
-        // 👇 Ajuste pedido: forzar expectedHeaders como encabezados
         const { data } = await fetchSheetByName(sheetName);
         renderTable({ headers: expectedHeaders, data }, sheetName);
       } catch (err) {
