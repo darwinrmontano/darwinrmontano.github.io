@@ -68,12 +68,17 @@
     .badge.ok   { color:#16a34a; box-shadow: inset 0 0 0 1px rgba(22,163,74,.12); }
     .badge.wait { color:#06b6d4; box-shadow: inset 0 0 0 1px rgba(6,182,212,.12); }
 
-    /* Pill del clima fijo abajo */
+    /* Pill del clima grande y clickeable */
     #weatherPill{
-      position:fixed; left:10px; bottom:10px; z-index:50;
-      font-size:13px; color:#555; padding:6px 10px; border-radius:999px;
-      background:#fff; border:1px solid var(--border); box-shadow:0 6px 18px rgba(0,0,0,.12);
+      position:fixed; left:14px; bottom:14px; z-index:50;
+      font-size:16px; color:#444; padding:10px 14px; border-radius:999px;
+      background:#fff; border:1px solid var(--border); box-shadow:0 8px 22px rgba(0,0,0,.15);
+      display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
     }
+    #weatherPill .dot{ width:10px; height:10px; border-radius:999px; background:#f59e0b; }
+    #weatherPill .city{ font-weight:600; }
+    #weatherPill .sep{ opacity:.35; padding:0 4px; }
+    #weatherPill small{ opacity:.8; }
 
     /* ============================
        DARK MODE (tipo Linux)
@@ -132,9 +137,10 @@
       .badge.wait { color:#00d1ff; }
 
       #weatherPill{
-        background:#12161c; color:#cbd5e1; border-color:#232a32;
-        box-shadow:0 8px 20px rgba(0,0,0,.35);
+        background:#12161c; color:#d1d6dc; border-color:#232a32;
+        box-shadow:0 10px 26px rgba(0,0,0,.38);
       }
+      #weatherPill .dot{ background:#fbbf24; }
     }
 
     /* Fuente opcional estilo terminal */
@@ -173,10 +179,19 @@
   </div>
 
   <!-- Pill clima -->
-  <div id="weatherPill">🌡️ Loading weather…</div>
+  <div id="weatherPill" title="Click para actualizar">
+    <span class="dot"></span>
+    <span id="wCity" class="city">Loading…</span>
+    <span class="sep">·</span>
+    <span id="wTime">--:--</span>
+    <span class="sep">·</span>
+    <span id="wTemp">--°F</span>
+    <span class="sep">·</span>
+    <small id="wPoP">PoP --%</small>
+  </div>
 
   <script>
-    /* ===== ID CORREGIDO ===== */
+    /* ===== ID CORREGIDO (si lo cambias, vuelve a pegar todo el archivo) ===== */
     const spreadsheetId = "10fqQKjZt1aMO-nTIzHYTDLU8C5qHElgGJmkSmfHEY";
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbydyX7AkI6i_D_rAV2Wb1TOWIajgxKWdOBPq_rO0aUrOMfcUoMYgr59UG0_etspchP0DQ/exec";
     const gidMapSheet = "GIDMAP";
@@ -189,17 +204,28 @@
     const titleEl = document.getElementById("sheetTitle");
     const tableEl = document.getElementById("tbl");
     const dailyHint = document.getElementById("dailyHint");
+
+    const wCity = document.getElementById("wCity");
+    const wTime = document.getElementById("wTime");
+    const wTemp = document.getElementById("wTemp");
+    const wPoP  = document.getElementById("wPoP");
     const weatherPill = document.getElementById("weatherPill");
 
     const gidMap = {};
 
+    /* Utilidades fecha */
     function getLocalTodayDate() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
       return now.toISOString().split("T")[0];
     }
+    function fmtLocalHour(d = new Date()) {
+      const pad = n => String(n).padStart(2,"0");
+      // formato YYYY-MM-DDTHH:00 para timezone local (sin Z)
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`;
+    }
 
-    /* ====== Cargar GIDMAP ====== */
+    /* ====== Cargar GIDMAP (con fallback a fecha cercana) ====== */
     fetch(gidMapUrl)
       .then(r => {
         if (!r.ok) throw new Error("GIDMAP HTTP " + r.status);
@@ -211,15 +237,23 @@
           const gid = row.GID?.trim();
           if (fecha && gid) gidMap[fecha] = gid;
         });
+
+        // Selecciona hoy o la fecha disponible más reciente
         const today = getLocalTodayDate();
-        dateInput.value = today;
-        if (gidMap[today]) {
-          showDailyByGid(gidMap[today]);
-        } else {
-          titleEl.textContent = `PLANTILLA : ${today}`;
+        const allDates = Object.keys(gidMap).sort(); // asc
+        let chosen = today;
+        if (!gidMap[chosen]) {
+          // buscar la última <= hoy; si no hay, la mayor disponible
+          const prev = allDates.filter(d => d <= today).pop() || allDates.pop();
+          chosen = prev || today;
+        }
+        dateInput.value = chosen;
+        if (gidMap[chosen]) showDailyByGid(gidMap[chosen]);
+        else {
+          titleEl.textContent = `PLANTILLA : ${chosen}`;
           tableWrap.style.display = "block";
           iframeCard.style.display = "none";
-          tableEl.innerHTML = `<tr><td>No hay hoja para hoy (${today}).</td></tr>`;
+          tableEl.innerHTML = `<tr><td>No hay hoja para esta fecha.</td></tr>`;
         }
       })
       .catch(err => {
@@ -312,12 +346,21 @@
 
     dateInput.addEventListener("change", () => {
       const selected = dateInput.value;
-      if (gidMap[selected]) showDailyByGid(gidMap[selected]);
-      else {
-        tableWrap.style.display = "block";
-        iframeCard.style.display = "none";
-        titleEl.textContent = `PLANTILLA : ${selected}`;
-        tableEl.innerHTML = `<tr><td>No hay hoja para la fecha seleccionada.</td></tr>`;
+      if (gidMap[selected]) {
+        showDailyByGid(gidMap[selected]);
+      } else {
+        // buscar la fecha disponible más cercana hacia atrás
+        const allDates = Object.keys(gidMap).sort();
+        const prev = allDates.filter(d => d <= selected).pop() || allDates.pop();
+        if (prev) {
+          dateInput.value = prev;
+          showDailyByGid(gidMap[prev]);
+        } else {
+          tableWrap.style.display = "block";
+          iframeCard.style.display = "none";
+          titleEl.textContent = `PLANTILLA : ${selected}`;
+          tableEl.innerHTML = `<tr><td>No hay hoja para la fecha seleccionada.</td></tr>`;
+        }
       }
     });
 
@@ -391,8 +434,8 @@
     /* ===== Clima con Open-Meteo (sin API key) ===== */
     async function loadWeather() {
       try {
-        // 1) Conseguir ubicación (si el usuario permite)
-        let lat = 38.3365, lon = -75.0908; // Fallback: Ocean City, MD
+        // 1) Geolocalización (permiso del usuario). Fallback: Ocean City, MD
+        let lat = 38.3365, lon = -75.0908, cityName = "Ocean City";
         if (navigator.geolocation) {
           await new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
@@ -400,25 +443,46 @@
               () => resolve(), { enableHighAccuracy:true, timeout:5000, maximumAge:300000 }
             );
           });
+          // Reverse geocoding (Open-Meteo, sin clave)
+          try {
+            const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&format=json`);
+            const gj = await g.json();
+            if (gj && gj.results && gj.results.length) {
+              const r = gj.results[0];
+              cityName = [r.name, r.admin1].filter(Boolean).join(", ");
+            }
+          } catch {}
         }
-        // 2) Llamar a Open-Meteo
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=auto`;
+        // 2) Meteo actual + probabilidad de lluvia por hora (día actual)
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=precipitation_probability&temperature_unit=fahrenheit&timezone=auto`;
         const r = await fetch(url);
         const j = await r.json();
-        const t = Math.round(j.current.temperature_2m);
-        const code = j.current.weather_code;
-        const desc = ({
-          0:"Clear", 1:"Mainly clear", 2:"Partly cloudy", 3:"Overcast",
-          45:"Fog", 48:"Depositing rime fog", 51:"Light drizzle", 53:"Drizzle", 55:"Dense drizzle",
-          61:"Light rain", 63:"Rain", 65:"Heavy rain", 71:"Snow", 95:"Thunderstorm"
-        })[code] || "Weather";
-        weatherPill.textContent = `🌡️ ${t}°F — ${desc}`;
+        const tempF = Math.round(j.current.temperature_2m);
+        const times = j.hourly.time;                    // en timezone local (por timezone=auto)
+        const pops  = j.hourly.precipitation_probability;
+        const hourKey = fmtLocalHour(new Date());
+        let pop = "--";
+        const idx = times.indexOf(hourKey);
+        if (idx >= 0 && pops && pops.length) pop = pops[idx];
+
+        // 3) Rellenar UI
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,"0");
+        const mm = String(now.getMinutes()).padStart(2,"0");
+        wCity.textContent = cityName;
+        wTime.textContent = `${hh}:${mm}`;
+        wTemp.textContent = `${tempF}°F`;
+        wPoP.textContent  = `PoP ${pop}%`;
       } catch(e){
-        weatherPill.textContent = "⚠️ Weather unavailable";
+        wCity.textContent = "Weather";
+        wTime.textContent = "--:--";
+        wTemp.textContent = "--°F";
+        wPoP.textContent  = "PoP --%";
         console.error(e);
       }
     }
     loadWeather();
+    weatherPill.addEventListener("click", loadWeather);
     setInterval(loadWeather, 30*60*1000); // refrescar cada 30 min
   </script>
 </body>
