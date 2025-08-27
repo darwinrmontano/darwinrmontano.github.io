@@ -147,19 +147,350 @@
 
     /* Fuente opcional estilo terminal */
     @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap");
-
-    /* 🚫 Ocultar la columna DATE (primera columna de la tabla) */
-    table tr th:first-child,
-    table tr td:first-child {
-      display: none;
-    }
   </style>
 </head>
 <body>
-  <!-- ⬇️ Todo tu body y script siguen igual ⬇️ -->
-  <!-- (no modifiqué nada más que el CSS arriba) -->
+  <h1>🚧Maintenance Team🚧</h1>
+  <p>Select a date:</p>
 
-  <!-- Aquí sigue tu mismo <h1>, botones, cards, tablas, clima y <script> -->
-  <!-- ... -->
+  <!-- Botonera -->
+  <div class="bar">
+    <button id="btnPending">See pending jobs⏳</button>
+    <button id="btnSuggested">See suggested jobs💡</button>
+    <span style="flex:1 0 20px"></span>
+    <button id="btnEdit">Edit📝 </button>
+    <button id="btnAdd">Add new 🆕</button>
+  </div>
+
+  <!-- Selector de fecha -->
+  <input type="date" id="datePicker" />
+
+  <!-- Contenedor iframe (se usará solo para otras vistas si lo necesitas) -->
+  <div class="card" id="iframeCard">
+    <iframe id="sheetFrame"></iframe>
+    <div class="muted" id="dailyHint"></div>
+  </div>
+
+  <!-- Contenedor tablas -->
+  <div class="card" id="tableWrap">
+    <div class="head" id="sheetTitle"></div>
+    <div style="overflow:auto;">
+      <table id="tbl"></table>
+    </div>
+    <div class="muted">select a date to go back to the daily task.</div>
+  </div>
+
+  <!-- ===== Píldora de clima ===== -->
+  <div id="weatherPill" title="Click para actualizar">
+    <span class="dot"></span>
+    <span id="wCity" class="city">Loading…</span>
+    <span class="sep">·</span>
+    <span id="wTime">--:--</span>
+    <span class="sep">·</span>
+    <span id="wTemp">--°F</span>
+    <span class="sep">·</span>
+    <small id="wPoP">PoP --%</small>
+  </div>
+
+  <script>
+    const spreadsheetId = "10fqQKjTzt1aMO-nTTzHYTDLJ8C5qHEIgGJjmkSmfHEY";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbydyX7AkI6i_D_rAV2Wb1TOWIajgxKWdOBPq_rO0aUrOMfcUoMYgr59UG0_etspchP0DQ/exec";
+    const gidMapSheet = "GIDMAP";
+    const gidMapUrl = `https://opensheet.elk.sh/${spreadsheetId}/${gidMapSheet}`;
+
+    const dateInput = document.getElementById("datePicker");
+    const iframe = document.getElementById("sheetFrame");
+    const iframeCard = document.getElementById("iframeCard");
+    const tableWrap = document.getElementById("tableWrap");
+    const titleEl = document.getElementById("sheetTitle");
+    const tableEl = document.getElementById("tbl");
+    const dailyHint = document.getElementById("dailyHint");
+
+    // refs clima
+    const weatherPill = document.getElementById("weatherPill");
+    const wCity = document.getElementById("wCity");
+    const wTime = document.getElementById("wTime");
+    const wTemp = document.getElementById("wTemp");
+    const wPoP  = document.getElementById("wPoP");
+
+    const gidMap = {};
+
+    function getLocalTodayDate() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().split("T")[0];
+    }
+
+    fetch(gidMapUrl)
+      .then(r => r.json())
+      .then(data => {
+        data.forEach(row => {
+          const fecha = row.FECHA?.trim();
+          const gid = row.GID?.trim();
+          if (fecha && gid) gidMap[fecha] = gid;
+        });
+        const today = getLocalTodayDate();
+        dateInput.value = today;
+        if (gidMap[today]) {
+          showDailyByGid(gidMap[today]);
+        } else {
+          alert("No hay hoja para hoy.");
+        }
+      })
+      .catch(err => {
+        console.error("Error al cargar GIDMAP:", err);
+        alert("No se pudo cargar la lista de fechas.");
+      });
+
+    /* ===============================
+       NUEVO: Leer hoja por GID (gviz)
+       =============================== */
+    async function fetchSheetByGid(gid) {
+      const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?`;
+      const url  = `${base}tqx=out:json&gid=${encodeURIComponent(gid)}&tq=${encodeURIComponent("select *")}`;
+      const res  = await fetch(url);
+      const txt  = await res.text();
+      const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+      const table = json.table || { cols: [], rows: [] };
+
+      // a filas planas
+      const rows = table.rows.map(r => (r.c || []).map(c => c ? c.v : ""));
+
+      // A veces la primera fila es un título "PLANTILLA : 2025-08-20"
+      let start = 0;
+      const looksLikeHeader = (arr) => {
+        const joined = (arr || []).join(" ").toLowerCase();
+        return /job|task|status|note|fecha|date/.test(joined);
+      };
+      if (rows.length && !looksLikeHeader(rows[0])) start = 1;
+
+      const headers = rows[start] || [];
+      const data    = rows.slice(start + 1);
+      return { headers, data };
+    }
+
+    /* ===== Helpers de normalización y badges ===== */
+    function toStatusHtml(v) {
+      const s = String(v ?? "").trim().toLowerCase();
+      const isDone =
+        s === "1" || s === "true" || s === "yes" || s === "y" ||
+        /done|listo|hecho|completo|completed|ok|✓|✔|✅/.test(s);
+      const isPending =
+        s === "" || s === "0" || s === "false" || /pend|todo|wait|🕓/.test(s);
+
+      if (isDone)   return { __html: `<span class="badge ok">✅ Done</span>` };
+      if (isPending) return { __html: `<span class="badge wait">🕓 Pending</span>` };
+      // otro texto: mostrarlo tal cual
+      return { __html: `<span class="badge">${escapeHtml(v)}</span>` };
+    }
+
+    // Quita DATE y fija encabezados JOB/TASK/STATUS/NOTE
+    function mapDailyToDisplay(headers, data) {
+      const lc = (headers || []).map(h => String(h || "").toLowerCase().trim());
+      const find = (re, fallback) => {
+        const i = lc.findIndex(h => re.test(h));
+        return i >= 0 ? i : fallback;
+      };
+      // orden típico en tu hoja: [DATE, JOB, TASK, STATUS, NOTE]
+      const iJob    = find(/^(job|job name|work|lugar|place)/, 1);
+      const iTask   = find(/^(task|tarea|desc|description)/, 2);
+      const iStatus = find(/^(status|estado)/, 3);
+      const iNote   = find(/^(note|notes|nota)/, 4);
+
+      const outHeaders = ["JOB NAME","TASK","STATUS","NOTE"];
+      const outData = data.map(r => [
+        r[iJob] ?? "",
+        r[iTask] ?? "",
+        toStatusHtml(r[iStatus]).__html ? toStatusHtml(r[iStatus]) : (r[iStatus] ?? ""),
+        r[iNote] ?? ""
+      ]);
+      return { headers: outHeaders, data: outData };
+    }
+
+    /* =============================
+       Vista diaria sin iframe
+       ============================= */
+    async function showDailyByGid(gid) {
+      // Ocultamos iframe y usamos la tabla nativa (oscura)
+      iframeCard.style.display = "none";
+      tableWrap.style.display  = "block";
+      titleEl.textContent      = `PLANTILLA : ${dateInput.value} — loading…`;
+      tableEl.innerHTML        = "";
+
+      try {
+        const { headers, data } = await fetchSheetByGid(gid);
+        const normalized = mapDailyToDisplay(headers, data); // 🔹 quita DATE y añade badges
+        renderTable(normalized, `PLANTILLA : ${dateInput.value}`);
+        dailyHint.textContent = "Vista nativa (sin iframe). Se adapta al modo oscuro.";
+      } catch (err) {
+        console.error(err);
+        // Respaldo usando iframe si algo falla
+        tableWrap.style.display = "none";
+        iframeCard.style.display = "block";
+        const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
+        iframe.src = url;
+        dailyHint.textContent = "Respaldo con iframe de Google Sheets.";
+      }
+    }
+
+    dateInput.addEventListener("change", () => {
+      const selected = dateInput.value;
+      if (gidMap[selected]) showDailyByGid(gidMap[selected]);
+      else alert("No hay hoja para la fecha seleccionada.");
+    });
+
+    // Este refresco solo actúa si está visible el iframe (respaldo)
+    setInterval(() => {
+      if (iframeCard.style.display !== "none" && iframe.src) {
+        const url = new URL(iframe.src);
+        url.searchParams.set("_r", Date.now());
+        iframe.src = url.toString();
+      }
+    }, 60000);
+
+    document.getElementById("btnPending").onclick = () =>
+      showNamedSheet("Pending work", ["DATE","JOB NAME","TASK","STATUS","NOTE"]);
+    document.getElementById("btnSuggested").onclick = () =>
+      showNamedSheet("suggested jobs", ["JOB NAME","TASK","NOTE"]);
+
+    document.getElementById("btnEdit").onclick = () => gated(() => {
+      window.open(`${WEBAPP_URL}?page=editar`, "_blank");
+    });
+    document.getElementById("btnAdd").onclick = () => gated(() => {
+      window.open(WEBAPP_URL, "_blank");
+    });
+
+    function gated(action) {
+      const ok = sessionStorage.getItem("pw_ok") === "1";
+      if (ok) return action();
+      const pw = prompt("Clave:");
+      if (pw === "hola") {
+        sessionStorage.setItem("pw_ok","1");
+        action();
+      } else if (pw !== null) {
+        alert("Clave incorrecta");
+      }
+    }
+
+    async function fetchSheetByName(sheetName) {
+      const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?`;
+      const url  = `${base}tqx=out:json&sheet=${encodeURIComponent(sheetName)}&tq=${encodeURIComponent("select *")}`;
+      const res  = await fetch(url);
+      const txt  = await res.text();
+      const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+      const table = json.table || {cols:[], rows:[]};
+      const rows = table.rows.map(r => (r.c||[]).map(c => c ? c.v : ""));
+      let start = 0;
+      if (rows.length && String(rows[0][0]).toLowerCase().includes(sheetName.split(" ")[0].toLowerCase())) {
+        start = 1;
+      }
+      const headers = rows[start] || [];
+      const data = rows.slice(start + 1);
+      return { headers, data };
+    }
+
+    // Render permite celdas con HTML seguro: {__html:"..."} para badges
+    function renderTable({headers, data}, title) {
+      const esc = (v) => String(v ?? "").replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
+      tableEl.innerHTML = "";
+      const thead = `<thead><tr>${headers.map(h=>`<th>${esc(h ?? "")}</th>`).join("")}</tr></thead>`;
+      const tbody = `<tbody>${
+        data.map(row => `<tr>${
+          headers.map((_,i)=>{
+            const cell = row[i];
+            if (cell && typeof cell === "object" && "__html" in cell) return `<td>${cell.__html}</td>`;
+            return `<td>${esc(formatCell(cell))}</td>`;
+          }).join("")
+        }</tr>`).join("")
+      }</tbody>`;
+      tableEl.innerHTML = thead + tbody;
+      titleEl.textContent = title;
+    }
+
+    function escapeHtml(v) {
+      if (v == null) return "";
+      return String(v).replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
+    }
+    function formatCell(v) {
+      if (v == null) return "";
+      if (Object.prototype.toString.call(v) === "[object Date]") {
+        try { return new Date(v).toLocaleDateString(); } catch (_) { return String(v); }
+      }
+      return v;
+    }
+
+    async function showNamedSheet(sheetName, expectedHeaders) {
+      iframeCard.style.display = "none";
+      tableWrap.style.display = "block";
+      titleEl.textContent = `${sheetName} — loading…`;
+      tableEl.innerHTML = "";
+      try {
+        const { data } = await fetchSheetByName(sheetName);
+        renderTable({ headers: expectedHeaders, data }, sheetName);
+      } catch (err) {
+        console.error(err);
+        titleEl.textContent = sheetName;
+        tableEl.innerHTML = `<tr><td>Error loading data</td></tr>`;
+      }
+    }
+
+    /* ====== CLIMA (Open-Meteo, sin API key) ====== */
+    function fmtLocalHour(d = new Date()){
+      const pad = n => String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`;
+    }
+
+    async function loadWeather() {
+      try {
+        // 1) Geolocalización (opcional). Fallback: Ocean City, MD
+        let lat = 38.3365, lon = -75.0908, cityName = "Ocean City, MD";
+        if (navigator.geolocation) {
+          await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              pos => { lat = pos.coords.latitude; lon = pos.coords.longitude; resolve(); },
+              () => resolve(), { enableHighAccuracy:true, timeout:5000, maximumAge:300000 }
+            );
+          });
+          // Reverse geocoding (Open-Meteo, sin clave)
+          try {
+            const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&format=json`);
+            const gj = await g.json();
+            if (gj && gj.results && gj.results.length) {
+              const r = gj.results[0];
+              cityName = [r.name, r.admin1].filter(Boolean).join(", ");
+            }
+          } catch {}
+        }
+
+        // 2) Meteo actual + probabilidad de lluvia por hora
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=precipitation_probability&temperature_unit=fahrenheit&timezone=auto`;
+        const r = await fetch(url);
+        const j = await r.json();
+        const tempF = Math.round(j.current.temperature_2m);
+        const times = j.hourly.time;
+        const pops  = j.hourly.precipitation_probability;
+        const idx   = times.indexOf(fmtLocalHour(new Date()));
+        const pop   = (idx >= 0 && pops) ? pops[idx] : "--";
+
+        // 3) Rellenar UI
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,"0");
+        const mm = String(now.getMinutes()).padStart(2,"0");
+        wCity.textContent = cityName;
+        wTime.textContent = `${hh}:${mm}`;
+        wTemp.textContent = `${tempF}°F`;
+        wPoP.textContent  = `PoP ${pop}%`;
+      } catch(e){
+        wCity.textContent = "Weather";
+        wTime.textContent = "--:--";
+        wTemp.textContent = "--°F";
+        wPoP.textContent  = "PoP --%";
+        console.error(e);
+      }
+    }
+    loadWeather();
+    weatherPill.addEventListener("click", loadWeather);
+    setInterval(loadWeather, 30*60*1000); // refrescar cada 30 min
+  </script>
 </body>
 </html>
