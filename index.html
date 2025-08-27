@@ -19,7 +19,7 @@
     }
 
     h1 { font-size:28px; margin:0 0 8px; }
-    p { font-size:16px; color:#444; margin:0 0 4px; }
+    p { font-size:16px; color:#444; margin:0 0 4px; } /* menos margen abajo */
 
     .bar {
       display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
@@ -32,12 +32,14 @@
     }
     button:hover { background:#fafafa; }
 
+    /* Cuadro de fecha pegado al texto */
     input[type="date"] {
       padding:10px; font-size:16px;
-      margin:0 0 10px;
+      margin:0 0 10px; /* margen superior eliminado */
       border-radius:10px; border:1px solid var(--border);
     }
 
+    /* Contenedor más angosto */
     .card {
       width:min(1000px,88vw);
       margin:0 auto;
@@ -48,6 +50,7 @@
     }
     iframe { width:100%; height:600px; border:0; display:block; }
 
+    /* Tabla renderizada */
     #tableWrap { display:none; text-align:left; }
     .head { padding:10px 14px; font-weight:700; border-bottom:1px solid var(--border); background:#fafafa; }
     table { width:100%; border-collapse:collapse; font-size:14px; }
@@ -55,15 +58,17 @@
     th { background:#fafafa; text-align:left; }
     .muted { color:var(--muted); font-size:12px; padding:10px 14px; }
 
+    /* Badges de estado */
     .badge{
       display:inline-flex; align-items:center; gap:6px;
       padding:3px 8px; border:1px solid var(--border); border-radius:999px;
       font-size:12px; line-height:1;
       background:linear-gradient(180deg,#fff,#f7f7f7);
     }
-    .badge.ok   { color:#16a34a; }
-    .badge.wait { color:#06b6d4; }
+    .badge.ok   { color:#16a34a; box-shadow: inset 0 0 0 1px rgba(22,163,74,.12); }
+    .badge.wait { color:#06b6d4; box-shadow: inset 0 0 0 1px rgba(6,182,212,.12); }
 
+    /* ===== Píldora/botón de clima (grande) ===== */
     #weatherPill{
       position:fixed; left:14px; bottom:14px; z-index:50;
       font-size:16px; color:#444; padding:10px 14px; border-radius:999px;
@@ -75,17 +80,72 @@
     #weatherPill .sep{ opacity:.35; padding:0 4px; }
     #weatherPill small{ opacity:.8; }
 
+    /* ============================
+       DARK MODE (tipo Linux)
+       ============================ */
     @media (prefers-color-scheme: dark) {
-      :root { --card: #111418; --border: #232a32; --muted: #9aa3ad; }
-      html, body { background:#0c0f12 !important; color:#e6e8eb; font-family: "Fira Code", monospace; }
-      .card { background: linear-gradient(180deg, var(--card), #161a20); border-color: var(--border); }
-      th, .head { color:#cbd5e1; }
+      :root {
+        --card: #111418;
+        --border: #232a32;
+        --muted: #9aa3ad;
+      }
+
+      html, body {
+        background:
+          radial-gradient(900px 600px at 10% -10%, rgba(0,209,255,.12), transparent 60%),
+          radial-gradient(900px 600px at 110% 10%, rgba(34,197,94,.10), transparent 55%),
+          #0c0f12 !important;
+        color: #e6e8eb;
+        font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .card {
+        background: linear-gradient(180deg, var(--card), #161a20);
+        border-color: var(--border);
+        box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      }
+
+      .head,
+      th {
+        background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+        color: #cbd5e1;
+      }
+
       table { color: #e6e8eb; }
       th, td { border-bottom: 1px dashed var(--border); }
-      button { background:#171b22; color:#e6e8eb; border-color: var(--border); }
-      input[type="date"] { background:#101419; color:#e6e8eb; border-color: var(--border); }
+      tr:hover td { background: rgba(0,209,255,.05); }
+
+      button {
+        background: linear-gradient(180deg, #171b22, #12161c);
+        color: #e6e8eb;
+        border-color: var(--border);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 4px 12px rgba(0,0,0,.25);
+      }
+      button:hover { outline: 1px solid #00d1ff; }
+
+      input[type="date"] {
+        background: #101419;
+        color: #e6e8eb;
+        border-color: var(--border);
+      }
+
+      .muted { color: var(--muted); }
+      iframe { background: #0f1318; }
+
+      .badge{
+        background: linear-gradient(180deg, #171b22, #12161c);
+      }
+      .badge.ok   { color:#4ade80; }
+      .badge.wait { color:#00d1ff; }
+
+      #weatherPill{
+        background:#12161c; color:#d1d6dc; border-color:#232a32;
+        box-shadow:0 10px 26px rgba(0,0,0,.38);
+      }
+      #weatherPill .dot{ background:#fbbf24; }
     }
 
+    /* Fuente opcional estilo terminal */
     @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap");
   </style>
 </head>
@@ -93,6 +153,7 @@
   <h1>🚧Maintenance Team🚧</h1>
   <p>Select a date:</p>
 
+  <!-- Botonera -->
   <div class="bar">
     <button id="btnPending">See pending jobs⏳</button>
     <button id="btnSuggested">See suggested jobs💡</button>
@@ -101,13 +162,16 @@
     <button id="btnAdd">Add new 🆕</button>
   </div>
 
+  <!-- Selector de fecha -->
   <input type="date" id="datePicker" />
 
+  <!-- Contenedor iframe (se usará solo para otras vistas si lo necesitas) -->
   <div class="card" id="iframeCard">
     <iframe id="sheetFrame"></iframe>
     <div class="muted" id="dailyHint"></div>
   </div>
 
+  <!-- Contenedor tablas -->
   <div class="card" id="tableWrap">
     <div class="head" id="sheetTitle"></div>
     <div style="overflow:auto;">
@@ -116,6 +180,7 @@
     <div class="muted">select a date to go back to the daily task.</div>
   </div>
 
+  <!-- ===== Píldora de clima ===== -->
   <div id="weatherPill" title="Click para actualizar">
     <span class="dot"></span>
     <span id="wCity" class="city">Loading…</span>
@@ -141,6 +206,13 @@
     const tableEl = document.getElementById("tbl");
     const dailyHint = document.getElementById("dailyHint");
 
+    // refs clima
+    const weatherPill = document.getElementById("weatherPill");
+    const wCity = document.getElementById("wCity");
+    const wTime = document.getElementById("wTime");
+    const wTemp = document.getElementById("wTemp");
+    const wPoP  = document.getElementById("wPoP");
+
     const gidMap = {};
 
     function getLocalTodayDate() {
@@ -164,8 +236,15 @@
         } else {
           alert("No hay hoja para hoy.");
         }
+      })
+      .catch(err => {
+        console.error("Error al cargar GIDMAP:", err);
+        alert("No se pudo cargar la lista de fechas.");
       });
 
+    /* ===============================
+       NUEVO: Leer hoja por GID (gviz)
+       =============================== */
     async function fetchSheetByGid(gid) {
       const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?`;
       const url  = `${base}tqx=out:json&gid=${encodeURIComponent(gid)}&tq=${encodeURIComponent("select *")}`;
@@ -173,37 +252,50 @@
       const txt  = await res.text();
       const json = JSON.parse(txt.substring(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
       const table = json.table || { cols: [], rows: [] };
+
+      // a filas planas
       const rows = table.rows.map(r => (r.c || []).map(c => c ? c.v : ""));
+
+      // A veces la primera fila es un título "PLANTILLA : 2025-08-20"
       let start = 0;
       const looksLikeHeader = (arr) => {
         const joined = (arr || []).join(" ").toLowerCase();
         return /job|task|status|note|fecha|date/.test(joined);
       };
       if (rows.length && !looksLikeHeader(rows[0])) start = 1;
+
       const headers = rows[start] || [];
       const data    = rows.slice(start + 1);
       return { headers, data };
     }
 
+    /* ===== Helpers de normalización y badges ===== */
     function toStatusHtml(v) {
       const s = String(v ?? "").trim().toLowerCase();
-      const isDone = /done|listo|hecho|completo|completed|ok|✓|✔|✅/.test(s);
-      const isPending = s==="" || /pend|todo|wait|🕓/.test(s);
+      const isDone =
+        s === "1" || s === "true" || s === "yes" || s === "y" ||
+        /done|listo|hecho|completo|completed|ok|✓|✔|✅/.test(s);
+      const isPending =
+        s === "" || s === "0" || s === "false" || /pend|todo|wait|🕓/.test(s);
+
       if (isDone)   return { __html: `<span class="badge ok">✅ Done</span>` };
       if (isPending) return { __html: `<span class="badge wait">🕓 Pending</span>` };
+      // otro texto: mostrarlo tal cual
       return { __html: `<span class="badge">${escapeHtml(v)}</span>` };
     }
 
+    // Quita DATE y fija encabezados JOB/TASK/STATUS/NOTE
     function mapDailyToDisplay(headers, data) {
       const lc = (headers || []).map(h => String(h || "").toLowerCase().trim());
       const find = (re, fallback) => {
         const i = lc.findIndex(h => re.test(h));
         return i >= 0 ? i : fallback;
       };
-      const iJob    = find(/job/, 1);
-      const iTask   = find(/task|desc/, 2);
-      const iStatus = find(/status|estado/, 3);
-      const iNote   = find(/note|nota/, 4);
+      // orden típico en tu hoja: [DATE, JOB, TASK, STATUS, NOTE]
+      const iJob    = find(/^(job|job name|work|lugar|place)/, 1);
+      const iTask   = find(/^(task|tarea|desc|description)/, 2);
+      const iStatus = find(/^(status|estado)/, 3);
+      const iNote   = find(/^(note|notes|nota)/, 4);
 
       const outHeaders = ["JOB NAME","TASK","STATUS","NOTE"];
       const outData = data.map(r => [
@@ -215,32 +307,70 @@
       return { headers: outHeaders, data: outData };
     }
 
+    /* =============================
+       Vista diaria sin iframe
+       ============================= */
     async function showDailyByGid(gid) {
+      // Ocultamos iframe y usamos la tabla nativa (oscura)
       iframeCard.style.display = "none";
       tableWrap.style.display  = "block";
       titleEl.textContent      = `PLANTILLA : ${dateInput.value} — loading…`;
       tableEl.innerHTML        = "";
+
       try {
         const { headers, data } = await fetchSheetByGid(gid);
-        const normalized = mapDailyToDisplay(headers, data);
+        const normalized = mapDailyToDisplay(headers, data); // 🔹 quita DATE y añade badges
         renderTable(normalized, `PLANTILLA : ${dateInput.value}`);
+        dailyHint.textContent = "Vista nativa (sin iframe). Se adapta al modo oscuro.";
       } catch (err) {
+        console.error(err);
+        // Respaldo usando iframe si algo falla
+        tableWrap.style.display = "none";
         iframeCard.style.display = "block";
-        const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}`;
+        const url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vT_SOmyJmpCUaj0oIQ5xgcZB-3AMPtBELZzCzzNZcN9eXfVPb1cq4MOc_dL41iphaopNvJnnmevgSxd/pubhtml?gid=${gid}&single=true&widget=true&headers=false`;
         iframe.src = url;
+        dailyHint.textContent = "Respaldo con iframe de Google Sheets.";
       }
     }
 
+    dateInput.addEventListener("change", () => {
+      const selected = dateInput.value;
+      if (gidMap[selected]) showDailyByGid(gidMap[selected]);
+      else alert("No hay hoja para la fecha seleccionada.");
+    });
+
+    // Este refresco solo actúa si está visible el iframe (respaldo)
+    setInterval(() => {
+      if (iframeCard.style.display !== "none" && iframe.src) {
+        const url = new URL(iframe.src);
+        url.searchParams.set("_r", Date.now());
+        iframe.src = url.toString();
+      }
+    }, 60000);
+
     document.getElementById("btnPending").onclick = () =>
-      showNamedSheet("Pending work", ["DATE","JOB NAME","TASK","STATUS","NOTE"]);
+      showNamedSheet("Pending work", ["JOB NAME","TASK","STATUS","NOTE"]);
     document.getElementById("btnSuggested").onclick = () =>
       showNamedSheet("suggested jobs", ["JOB NAME","TASK","NOTE"]);
 
-    function escapeHtml(v) {
-      if (v == null) return "";
-      return String(v).replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
+    document.getElementById("btnEdit").onclick = () => gated(() => {
+      window.open(`${WEBAPP_URL}?page=editar`, "_blank");
+    });
+    document.getElementById("btnAdd").onclick = () => gated(() => {
+      window.open(WEBAPP_URL, "_blank");
+    });
+
+    function gated(action) {
+      const ok = sessionStorage.getItem("pw_ok") === "1";
+      if (ok) return action();
+      const pw = prompt("Clave:");
+      if (pw === "hola") {
+        sessionStorage.setItem("pw_ok","1");
+        action();
+      } else if (pw !== null) {
+        alert("Clave incorrecta");
+      }
     }
-    function formatCell(v) { return v ?? ""; }
 
     async function fetchSheetByName(sheetName) {
       const base = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?`;
@@ -259,6 +389,7 @@
       return { headers, data };
     }
 
+    // Render permite celdas con HTML seguro: {__html:"..."} para badges
     function renderTable({headers, data}, title) {
       const esc = (v) => String(v ?? "").replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
       tableEl.innerHTML = "";
@@ -276,31 +407,90 @@
       titleEl.textContent = title;
     }
 
+    function escapeHtml(v) {
+      if (v == null) return "";
+      return String(v).replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
+    }
+    function formatCell(v) {
+      if (v == null) return "";
+      if (Object.prototype.toString.call(v) === "[object Date]") {
+        try { return new Date(v).toLocaleDateString(); } catch (_) { return String(v); }
+      }
+      return v;
+    }
+
     async function showNamedSheet(sheetName, expectedHeaders) {
       iframeCard.style.display = "none";
       tableWrap.style.display = "block";
       titleEl.textContent = `${sheetName} — loading…`;
       tableEl.innerHTML = "";
       try {
-        const { headers, data } = await fetchSheetByName(sheetName);
-
-        // CAMBIO: quitar columna DATE solo en suggested jobs
-        let finalHeaders = expectedHeaders;
-        let finalData = data;
-        if (sheetName.toLowerCase().includes("suggested")) {
-          const lc = headers.map(h => String(h).toLowerCase());
-          const idxDate = lc.indexOf("date");
-          if (idxDate >= 0) {
-            finalData = data.map(r => r.filter((_,i)=> i!==idxDate));
-          }
-        }
-
-        renderTable({ headers: finalHeaders, data: finalData }, sheetName);
+        const { data } = await fetchSheetByName(sheetName);
+        renderTable({ headers: expectedHeaders, data }, sheetName);
       } catch (err) {
+        console.error(err);
         titleEl.textContent = sheetName;
         tableEl.innerHTML = `<tr><td>Error loading data</td></tr>`;
       }
     }
+
+    /* ====== CLIMA (Open-Meteo, sin API key) ====== */
+    function fmtLocalHour(d = new Date()){
+      const pad = n => String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`;
+    }
+
+    async function loadWeather() {
+      try {
+        // 1) Geolocalización (opcional). Fallback: Ocean City, MD
+        let lat = 38.3365, lon = -75.0908, cityName = "Ocean City, MD";
+        if (navigator.geolocation) {
+          await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              pos => { lat = pos.coords.latitude; lon = pos.coords.longitude; resolve(); },
+              () => resolve(), { enableHighAccuracy:true, timeout:5000, maximumAge:300000 }
+            );
+          });
+          // Reverse geocoding (Open-Meteo, sin clave)
+          try {
+            const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=en&format=json`);
+            const gj = await g.json();
+            if (gj && gj.results && gj.results.length) {
+              const r = gj.results[0];
+              cityName = [r.name, r.admin1].filter(Boolean).join(", ");
+            }
+          } catch {}
+        }
+
+        // 2) Meteo actual + probabilidad de lluvia por hora
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=precipitation_probability&temperature_unit=fahrenheit&timezone=auto`;
+        const r = await fetch(url);
+        const j = await r.json();
+        const tempF = Math.round(j.current.temperature_2m);
+        const times = j.hourly.time;
+        const pops  = j.hourly.precipitation_probability;
+        const idx   = times.indexOf(fmtLocalHour(new Date()));
+        const pop   = (idx >= 0 && pops) ? pops[idx] : "--";
+
+        // 3) Rellenar UI
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,"0");
+        const mm = String(now.getMinutes()).padStart(2,"0");
+        wCity.textContent = cityName;
+        wTime.textContent = `${hh}:${mm}`;
+        wTemp.textContent = `${tempF}°F`;
+        wPoP.textContent  = `PoP ${pop}%`;
+      } catch(e){
+        wCity.textContent = "Weather";
+        wTime.textContent = "--:--";
+        wTemp.textContent = "--°F";
+        wPoP.textContent  = "PoP --%";
+        console.error(e);
+      }
+    }
+    loadWeather();
+    weatherPill.addEventListener("click", loadWeather);
+    setInterval(loadWeather, 30*60*1000); // refrescar cada 30 min
   </script>
 </body>
 </html>
